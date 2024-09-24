@@ -23,31 +23,39 @@ the fitness will be the sum of the square of the parameters, and the behavior wi
 
 from qdpy import algorithms, containers, plots
 from qdpy.base import ParallelismManager
-import math
+import math, random
 
+
+
+
+
+
+
+def simulation_fn(x, y, z):
+    """An example simulation function. It takes three parameters as input, and returns a score and features for two legs, where the features descibe hoe much each leg touches the ground."""
+    # Compute the fitness
+    fitness = (- x**2 + y**2 + z**2) * 10
+
+    # Compute the features
+    feature0 = x
+    feature1 = x * random.uniform(0.5, 1.5)
+
+    return fitness, (feature0, feature1)
 
 
 
 def eval_fn(ind):
     """An example evaluation function. It takes an individual as input, and returns the pair ``(fitness, features)``, where ``fitness`` and ``features`` are sequences of scores."""
-    normalization = sum((x for x in ind))
-    k = 10.
-    score = (8 * ind[0]) + ind[1] + ind[2]
+    score, features = simulation_fn(*ind)
 
-
-    # features, here it is the behavior of the robot
-    fit0 = ind[0]
-    fit1 = ind[1]
-
-    features = (fit0, fit1)
     return (score,), features
 
 
 
 if __name__ == "__main__":
     # Create container and algorithm. Here we use MAP-Elites, by illuminating a Grid container by evolution.
-    grid = containers.Grid(shape=(16,16), max_items_per_bin=1, fitness_domain=((0, 10.),), features_domain=((0., 1.), (0., 1.)))
-    algo = algorithms.RandomSearchMutPolyBounded(grid, budget=10000, batch_size=500,
+    grid = containers.Grid(shape=(6,6), max_items_per_bin=1, fitness_domain=((0, 10.),), features_domain=((0., 1.), (0., 1.)))
+    algo = algorithms.RandomSearchMutPolyBounded(grid, budget=4000, batch_size=250,
             dimension=3, optimisation_task="maximization")
 
     # Create a logger to pretty-print everything and generate output data files
