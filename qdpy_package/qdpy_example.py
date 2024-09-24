@@ -26,27 +26,75 @@ example from : https://gitlab.com/leo.cazenille/qdpy/-/blob/master/examples/cust
 
 from qdpy import algorithms, containers, plots
 from qdpy.base import ParallelismManager
-import math, random
+import math, random, time
 import numpy as np
 
 
+import mujoco
+import mujoco.viewer
+import mediapy
+from PIL import Image
+import numpy as np
 
 
+# simulation setup
+def sine_controller(time, amp, freq, phase, offset):
+    return amp * np.sin(freq*time + phase) + offset
+
+model = mujoco.MjModel.from_xml_path('qutee.xml')
+data = mujoco.MjData(model)
+renderer = mujoco.Renderer(model)
+
+# enable joint visualization option:
+scene_option = mujoco.MjvOption()
+scene_option.flags[mujoco.mjtVisFlag.mjVIS_JOINT] = True
+
+duration = 10   # (seconds)
+framerate = 60  # (Hz)
+
+frames = []
+fulfilled = 0
+
+
+   
 
 def eval_fn(controller_parameters):
     """An example evaluation function. It takes an individual as input, and returns the pair ``(fitness, features)``, where ``fitness`` and ``features`` are sequences of scores."""
     """returns a score and features for two legs, where the features descibe hoe much each leg touches the ground."""
-    # Compute the fitness
+
+
     # Destructure controller_parameters into a 2x2 matrix
     # Deconstruct controller_parameters into a 2x2 matrix of 4x4 matrices
-
-    
+    print(controller_parameters)
     reshaped_parameters = np.array(controller_parameters).reshape(2, 2, 3, 4)
 
 
+    # simulation part
+    mujoco.mj_resetData(model, data)
+    while data.time < duration:
+        # INPUT CONTROLLER HERE data.ctrl should be a list of 12 controllers
+        
+        # Initialize the control list for the 12 actuators
+        ctrl_values = []
+        
+        # Loop over the 2x2 structure to get each leg's actuators
+        for i in range(2):
+            for j in range(2):
+                # Get the 3 actuators (rows) for the current leg
+                actuators = reshaped_parameters[i][j]
+                
+                # Loop through the actuators
+                for actuator_params in actuators:
+                    amplitude, frequency, phase, offset = actuator_params
+                    # Generate the control signal using the sine_controller and append it to ctrl_values
+                    ctrl_values.append(sine_controller(data.time, amplitude, frequency, phase, offset))
+        
+        # Assign the computed control values to data.ctrl (12 actuators in total)
+        data.ctrl = ctrl_values
+        mujoco.mj_step(model, data)
 
 
-    
+    # randomn fitness and features for now    
     # first front or back, then left or right, then the 3 actuators for each leg, then the 4 parameters for each actuator
     fitness = (- reshaped_parameters[0][0][1][0]**2 - reshaped_parameters[0][0][1][1]**2 + reshaped_parameters[0][0][1][2]**2 + reshaped_parameters[0][0][1][3]**2) * 10
 
@@ -63,7 +111,7 @@ def eval_fn(controller_parameters):
 if __name__ == "__main__":
     # Create container and algorithm. Here we use MAP-Elites, by illuminating a Grid container by evolution.
     grid = containers.Grid(shape=(10,10), max_items_per_bin=1, fitness_domain=((0, 10.),), features_domain=((0., 1.), (0., 1.)))
-    algo = algorithms.RandomSearchMutPolyBounded(grid, budget=10000, batch_size=250,
+    algo = algorithms.RandomSearchMutPolyBounded(grid, budget=100, batch_size=4,
             dimension=48, optimisation_task="maximization")
 
     # Create a logger to pretty-print everything and generate output data files
