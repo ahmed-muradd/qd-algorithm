@@ -56,11 +56,31 @@ frames = []
 fulfilled = 0
 
 
-   
+def save_video(controllers):
+    frames = []
+    mujoco.mj_resetData(model, data)
+
+    while data.time < duration:
+
+        data.ctrl = controllers
+        mujoco.mj_step(model, data)
+        if len(frames) < data.time * framerate:
+            renderer.update_scene(data, scene_option=scene_option)
+            pixels = renderer.render()
+            frames.append(pixels)      
+
+    # Simulate and display video with increased size.
+    bigger_frames = []
+    for frame in frames: 
+        image = Image.fromarray(frame)
+        bigger_image = image.resize((1280, 720))
+        bigger_frames.append(np.array(bigger_image))
+
+    mediapy.write_video("qutee.mp4", bigger_frames, fps=framerate)  
 
 def eval_fn(controller_parameters):
     """An example evaluation function. It takes an individual as input, and returns the pair ``(fitness, features)``, where ``fitness`` and ``features`` are sequences of scores."""
-    """returns a score and features for two legs, where the features descibe hoe much each leg touches the ground."""
+    """returns a score and features for two legs, where the features descirbe how much each leg touches the ground."""
 
 
     # Destructure controller_parameters into a 2x2 matrix
@@ -71,9 +91,11 @@ def eval_fn(controller_parameters):
 
     # simulation part
     mujoco.mj_resetData(model, data)
-    while data.time < duration:
-        # INPUT CONTROLLER HERE data.ctrl should be a list of 12 controllers
-        
+    #start position of robot
+    body_index = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "base_link")
+    initial_position = np.copy(data.xpos[body_index])   
+
+    while data.time < duration:        
         # Initialize the control list for the 12 actuators
         ctrl_values = []
         
@@ -94,9 +116,11 @@ def eval_fn(controller_parameters):
         mujoco.mj_step(model, data)
 
 
-    # randomn fitness and features for now    
-    # first front or back, then left or right, then the 3 actuators for each leg, then the 4 parameters for each actuator
-    fitness = (- reshaped_parameters[0][0][1][0]**2 - reshaped_parameters[0][0][1][1]**2 + reshaped_parameters[0][0][1][2]**2 + reshaped_parameters[0][0][1][3]**2) * 10
+    # where the robot stopped
+    end_position = np.copy(data.xpos[body_index])
+    #calculating fitness
+    diff = end_position - initial_position
+    fitness = diff[0]**2 + diff[1]**2 + diff[2]**2
 
     # Compute the features
     feature0 = reshaped_parameters[0][0][1][0]
