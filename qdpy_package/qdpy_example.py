@@ -49,7 +49,7 @@ renderer = mujoco.Renderer(model)
 scene_option = mujoco.MjvOption()
 scene_option.flags[mujoco.mjtVisFlag.mjVIS_JOINT] = True
 
-duration = 10   # (seconds)
+duration = 100   # (seconds)
 framerate = 60  # (Hz)
 
 frames = []
@@ -60,9 +60,27 @@ def save_video(controllers):
     frames = []
     mujoco.mj_resetData(model, data)
 
-    while data.time < duration:
+    reshaped_parameters = np.array(controllers).reshape(2, 2, 3, 4)
 
-        data.ctrl = controllers
+
+    while data.time < duration:        
+        # Initialize the control list for the 12 actuators
+        ctrl_values = []
+        
+        # Loop over the 2x2 structure to get each leg's actuators
+        for i in range(2):
+            for j in range(2):
+                # Get the 3 actuators (rows) for the current leg
+                actuators = reshaped_parameters[i][j]
+                
+                # Loop through the actuators
+                for actuator_params in actuators:
+                    amplitude, frequency, phase, offset = actuator_params
+                    # Generate the control signal using the sine_controller and append it to ctrl_values
+                    ctrl_values.append(sine_controller(data.time, amplitude, frequency, phase, offset))
+        
+        # Assign the computed control values to data.ctrl (12 actuators in total)
+        data.ctrl = ctrl_values
         mujoco.mj_step(model, data)
         if len(frames) < data.time * framerate:
             renderer.update_scene(data, scene_option=scene_option)
@@ -76,7 +94,12 @@ def save_video(controllers):
         bigger_image = image.resize((1280, 720))
         bigger_frames.append(np.array(bigger_image))
 
-    mediapy.write_video("qutee.mp4", bigger_frames, fps=framerate)  
+    mediapy.write_video("qutee.mp4", bigger_frames, fps=framerate)
+
+    renderer.close()
+
+
+
 
 def eval_fn(controller_parameters):
     """An example evaluation function. It takes an individual as input, and returns the pair ``(fitness, features)``, where ``fitness`` and ``features`` are sequences of scores."""
@@ -85,7 +108,6 @@ def eval_fn(controller_parameters):
 
     # Destructure controller_parameters into a 2x2 matrix
     # Deconstruct controller_parameters into a 2x2 matrix of 4x4 matrices
-    print(controller_parameters)
     reshaped_parameters = np.array(controller_parameters).reshape(2, 2, 3, 4)
 
 
@@ -135,7 +157,7 @@ def eval_fn(controller_parameters):
 if __name__ == "__main__":
     # Create container and algorithm. Here we use MAP-Elites, by illuminating a Grid container by evolution.
     grid = containers.Grid(shape=(10,10), max_items_per_bin=1, fitness_domain=((0, 10.),), features_domain=((0., 1.), (0., 1.)))
-    algo = algorithms.RandomSearchMutPolyBounded(grid, budget=100, batch_size=4,
+    algo = algorithms.RandomSearchMutPolyBounded(grid, budget=500, batch_size=10,
             dimension=48, optimisation_task="maximization")
 
     # Create a logger to pretty-print everything and generate output data files
@@ -166,6 +188,10 @@ To open it, you can use the following python code:
     print(grid.best.fitness)
     print(grid.best.features)
     """)
+
+
+    print(best)
+    save_video(best)
 
 # MODELINE "{{{1
 # vim:expandtab:softtabstop=4:shiftwidth=4:fileencoding=utf-8
