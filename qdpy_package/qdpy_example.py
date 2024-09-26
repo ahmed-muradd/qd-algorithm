@@ -43,17 +43,10 @@ def sine_controller(time, amp, freq, phase, offset):
 
 model = mujoco.MjModel.from_xml_path('qutee.xml')
 data = mujoco.MjData(model)
-renderer = mujoco.Renderer(model)
 
-# enable joint visualization option:
-scene_option = mujoco.MjvOption()
-scene_option.flags[mujoco.mjtVisFlag.mjVIS_JOINT] = True
-
-duration = 10   # (seconds)
+duration = 15   # (seconds)
 framerate = 60  # (Hz)
 
-frames = []
-fulfilled = 0
 
 
 def save_video(parameters):
@@ -64,16 +57,27 @@ def save_video(parameters):
     output:
     saves video of robot in directory
     '''
+
+    parameters = np.reshape(parameters, (12, 4))
+
+    renderer = mujoco.Renderer(model)
+
+    # enable joint visualization option:
+    scene_option = mujoco.MjvOption()
+    scene_option.flags[mujoco.mjtVisFlag.mjVIS_JOINT] = True
+
+
     frames = []
     mujoco.mj_resetData(model, data)
     
+    fused = np.zeros((12, 5))
+    fused[:, 1:] = parameters
+    
     # run each frame on simulation
     while data.time < duration:
-        fused = np.zeros((12, 5))
         controllers = []
 
         fused[:, 0] = data.time
-        fused[:, 1:] = parameters
         
         # applies sine wave to each parameter
         for row in fused:
@@ -95,13 +99,16 @@ def save_video(parameters):
         bigger_image = image.resize((1280, 720))
         bigger_frames.append(np.array(bigger_image))
 
-    mediapy.write_video("qutee.mp4", bigger_frames, fps=framerate)    
+    mediapy.write_video("qutee.mp4", bigger_frames, fps=framerate)
+
+    renderer.close()
+
 
 
 def eval_fn(parameters):
     """
     input:
-        input is a 12x4 array of optimized parameters
+        input is a 48 element array of control parameters
 
     output:
         (fitness, feauture0, feature1)
@@ -110,18 +117,21 @@ def eval_fn(parameters):
         feature 1 is ?
     """
 
+    parameters = np.reshape(parameters, (12, 4))
+
     # simulation part
     mujoco.mj_resetData(model, data)
     #start position of robot
     body_index = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "base_link")
     initial_position = np.copy(data.xpos[body_index])   
 
+    fused = np.zeros((12, 5))
+    fused[:, 1:] = parameters
+
     while data.time < duration:        
-        fused = np.zeros((12, 5))
         controllers = []
 
         fused[:, 0] = data.time
-        fused[:, 1:] = parameters
         
         # applies sine wave to each parameter
         for row in fused:
@@ -134,19 +144,19 @@ def eval_fn(parameters):
     # where the robot stopped
     end_position = np.copy(data.xpos[body_index])
     #calculating fitness
-    diff = end_position - initial_position
-    fitness = diff[0]**2 + diff[1]**2 + diff[2]**2
+    x, y, z = end_position - initial_position
+    fitness = x**2 + y**2 + z**2
 
     # Compute the features
-    feature0 = None
-    feature1 = None
+    feature0 = x
+    feature1 = y
 
-    return (fitness, feature0, feature1)
+    return (fitness,), (feature0, feature1)
 
 if __name__ == "__main__":
     # Create container and algorithm. Here we use MAP-Elites, by illuminating a Grid container by evolution.
-    grid = containers.Grid(shape=(10,10), max_items_per_bin=1, fitness_domain=((0, 10.),), features_domain=((0., 1.), (0., 1.)))
-    algo = algorithms.RandomSearchMutPolyBounded(grid, budget=100, batch_size=4,
+    grid = containers.Grid(shape=(5,5), max_items_per_bin=1, fitness_domain=((0, 2.),), features_domain=((0., 1.), (0., 1.)))
+    algo = algorithms.RandomSearchMutPolyBounded(grid, budget=100, batch_size=10,
             dimension=48, optimisation_task="maximization")
 
     # Create a logger to pretty-print everything and generate output data files
@@ -163,21 +173,11 @@ if __name__ == "__main__":
     plots.default_plots_grid(logger)
 
     print("\nAll results are available in the '%s' pickle file." % logger.final_filename)
-    print(f"""
-To open it, you can use the following python code:
-    import pickle
-    # You may want to import your own packages if the pickle file contains custom objects
 
-    with open("{logger.final_filename}", "rb") as f:
-        data = pickle.load(f)
-    # ``data`` is now a dictionary containing all results, including the final container, all solutions, the algorithm parameters, etc.
-
-    grid = data['container']
-    print(grid.best)
-    print(grid.best.fitness)
-    print(grid.best.features)
-    """)
 
 # MODELINE "{{{1
 # vim:expandtab:softtabstop=4:shiftwidth=4:fileencoding=utf-8
 # vim:foldmethod=marker
+
+
+save_video(best)
