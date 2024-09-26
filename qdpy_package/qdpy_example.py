@@ -43,75 +43,120 @@ def sine_controller(time, amp, freq, phase, offset):
 
 model = mujoco.MjModel.from_xml_path('qutee.xml')
 data = mujoco.MjData(model)
-renderer = mujoco.Renderer(model)
 
-# enable joint visualization option:
-scene_option = mujoco.MjvOption()
-scene_option.flags[mujoco.mjtVisFlag.mjVIS_JOINT] = True
-
-duration = 10   # (seconds)
+duration = 15   # (seconds)
 framerate = 60  # (Hz)
 
-frames = []
-fulfilled = 0
 
 
-   
+def save_video(parameters):
+    '''
+    input:
+    controllers is a 12X4 Matrix
 
-def eval_fn(controller_parameters):
-    """An example evaluation function. It takes an individual as input, and returns the pair ``(fitness, features)``, where ``fitness`` and ``features`` are sequences of scores."""
-    """returns a score and features for two legs, where the features descibe hoe much each leg touches the ground."""
+    output:
+    saves video of robot in directory
+    '''
+
+    parameters = np.reshape(parameters, (12, 4))
+
+    renderer = mujoco.Renderer(model)
+
+    # enable joint visualization option:
+    scene_option = mujoco.MjvOption()
+    scene_option.flags[mujoco.mjtVisFlag.mjVIS_JOINT] = True
 
 
-    # Destructure controller_parameters into a 2x2 matrix
-    # Deconstruct controller_parameters into a 2x2 matrix of 4x4 matrices
-    print(controller_parameters)
-    reshaped_parameters = np.array(controller_parameters).reshape(2, 2, 3, 4)
+    frames = []
+    mujoco.mj_resetData(model, data)
+    
+    fused = np.zeros((12, 5))
+    fused[:, 1:] = parameters
+    
+    # run each frame on simulation
+    while data.time < duration:
+        controllers = []
 
+        fused[:, 0] = data.time
+        
+        # applies sine wave to each parameter
+        for row in fused:
+            controllers.append(sine_controller(row[0], row[1], row[2], row[3], row[4]))
+
+        data.ctrl = controllers
+        mujoco.mj_step(model, data)
+
+        # creates a video
+        if len(frames) < data.time * framerate:
+            renderer.update_scene(data, scene_option=scene_option)
+            pixels = renderer.render()
+            frames.append(pixels)  
+
+    # Simulate and display video with increased size.
+    bigger_frames = []
+    for frame in frames: 
+        image = Image.fromarray(frame)
+        bigger_image = image.resize((1280, 720))
+        bigger_frames.append(np.array(bigger_image))
+
+    mediapy.write_video("qutee.mp4", bigger_frames, fps=framerate)
+
+    renderer.close()
+
+
+
+def eval_fn(parameters):
+    """
+    input:
+        input is a 48 element array of control parameters
+
+    output:
+        (fitness, feauture0, feature1)
+        fitness is the score of the controller
+        feature 0 is ?
+        feature 1 is ?
+    """
+
+    parameters = np.reshape(parameters, (12, 4))
 
     # simulation part
     mujoco.mj_resetData(model, data)
-    while data.time < duration:
-        # INPUT CONTROLLER HERE data.ctrl should be a list of 12 controllers
+    #start position of robot
+    body_index = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "base_link")
+    initial_position = np.copy(data.xpos[body_index])   
+
+    fused = np.zeros((12, 5))
+    fused[:, 1:] = parameters
+
+    while data.time < duration:        
+        controllers = []
+
+        fused[:, 0] = data.time
         
-        # Initialize the control list for the 12 actuators
-        ctrl_values = []
-        
-        # Loop over the 2x2 structure to get each leg's actuators
-        for i in range(2):
-            for j in range(2):
-                # Get the 3 actuators (rows) for the current leg
-                actuators = reshaped_parameters[i][j]
-                
-                # Loop through the actuators
-                for actuator_params in actuators:
-                    amplitude, frequency, phase, offset = actuator_params
-                    # Generate the control signal using the sine_controller and append it to ctrl_values
-                    ctrl_values.append(sine_controller(data.time, amplitude, frequency, phase, offset))
-        
-        # Assign the computed control values to data.ctrl (12 actuators in total)
-        data.ctrl = ctrl_values
+        # applies sine wave to each parameter
+        for row in fused:
+            controllers.append(sine_controller(row[0], row[1], row[2], row[3], row[4]))
+
+        data.ctrl = controllers
         mujoco.mj_step(model, data)
 
 
-    # randomn fitness and features for now    
-    # first front or back, then left or right, then the 3 actuators for each leg, then the 4 parameters for each actuator
-    fitness = (- reshaped_parameters[0][0][1][0]**2 - reshaped_parameters[0][0][1][1]**2 + reshaped_parameters[0][0][1][2]**2 + reshaped_parameters[0][0][1][3]**2) * 10
+    # where the robot stopped
+    end_position = np.copy(data.xpos[body_index])
+    #calculating fitness
+    x, y, z = end_position - initial_position
+    fitness = x**2 + y**2 + z**2
 
     # Compute the features
-    feature0 = reshaped_parameters[0][0][1][0]
-    feature1 = reshaped_parameters[0][0][1][0] * random.uniform(0.5, 1.5)
-
+    feature0 = x
+    feature1 = y
 
     return (fitness,), (feature0, feature1)
 
-
-
-
 if __name__ == "__main__":
     # Create container and algorithm. Here we use MAP-Elites, by illuminating a Grid container by evolution.
-    grid = containers.Grid(shape=(10,10), max_items_per_bin=1, fitness_domain=((0, 10.),), features_domain=((0., 1.), (0., 1.)))
-    algo = algorithms.RandomSearchMutPolyBounded(grid, budget=100, batch_size=4,
+    grid = containers.Grid(shape=(5,5), max_items_per_bin=1, fitness_domain=((0, 2.),), features_domain=((0., 1.), (0., 1.)))
+    algo = algorithms.RandomSearchMutPolyBounded(grid, budget=100, batch_size=10,
             dimension=48, optimisation_task="maximization")
 
     # Create a logger to pretty-print everything and generate output data files
@@ -128,21 +173,11 @@ if __name__ == "__main__":
     plots.default_plots_grid(logger)
 
     print("\nAll results are available in the '%s' pickle file." % logger.final_filename)
-    print(f"""
-To open it, you can use the following python code:
-    import pickle
-    # You may want to import your own packages if the pickle file contains custom objects
 
-    with open("{logger.final_filename}", "rb") as f:
-        data = pickle.load(f)
-    # ``data`` is now a dictionary containing all results, including the final container, all solutions, the algorithm parameters, etc.
-
-    grid = data['container']
-    print(grid.best)
-    print(grid.best.fitness)
-    print(grid.best.features)
-    """)
 
 # MODELINE "{{{1
 # vim:expandtab:softtabstop=4:shiftwidth=4:fileencoding=utf-8
 # vim:foldmethod=marker
+
+
+save_video(best)
