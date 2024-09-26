@@ -26,3 +26,4 @@ pip freeze > requirements.txt
 ```
 
 
+Result files from qdpy is excluded in this git repo, they get created by running qdpy_package/qdpy_example.py

@@ -44,7 +44,7 @@ def sine_controller(time, amp, freq, phase, offset):
 model = mujoco.MjModel.from_xml_path('qutee.xml')
 data = mujoco.MjData(model)
 
-duration = 15   # (seconds)
+duration = 60   # (seconds)
 framerate = 60  # (Hz)
 
 
@@ -150,12 +150,16 @@ def eval_fn(parameters):
     # Compute the features
     feature0 = x
     feature1 = y
+    feature2 = z
+    feature3 = 0
 
-    return (fitness,), (feature0, feature1)
+    return (fitness,), (feature0, feature1, feature2, feature3)
+
+
 
 if __name__ == "__main__":
     # Create container and algorithm. Here we use MAP-Elites, by illuminating a Grid container by evolution.
-    grid = containers.Grid(shape=(5,5), max_items_per_bin=1, fitness_domain=((0, 2.),), features_domain=((0., 1.), (0., 1.)))
+    grid = containers.Grid(shape=(16,16,16,16), max_items_per_bin=1, fitness_domain=((0, 2.),), features_domain=((-2, 2), (-2, 2), (-2, 2), (-2, 2)))
     algo = algorithms.RandomSearchMutPolyBounded(grid, budget=100, batch_size=10,
             dimension=48, optimisation_task="maximization")
 
@@ -174,10 +178,4 @@ if __name__ == "__main__":
 
     print("\nAll results are available in the '%s' pickle file." % logger.final_filename)
 
-
-# MODELINE "{{{1
-# vim:expandtab:softtabstop=4:shiftwidth=4:fileencoding=utf-8
-# vim:foldmethod=marker
-
-
-save_video(best)
+    save_video(best)
