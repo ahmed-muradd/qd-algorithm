@@ -22,10 +22,14 @@ from qdax.utils.plotting import plot_map_elites_results
 from qdax.utils.metrics import CSVLogger, default_qd_metrics
 
 from jax.flatten_util import ravel_pytree
+import matplotlib.pyplot as plt
 
 
 
-batch_size = 100 #@param {type:"number"}
+
+
+
+batch_size = 10 #@param {type:"number"}
 env_name = 'walker2d_uni' #@param['ant_uni', 'hopper_uni', 'walker2d_uni', 'halfcheetah_uni', 'humanoid_uni', 'ant_omni', 'humanoid_omni']
 episode_length = 100 #@param {type:"integer"}
 num_iterations = 1000 #@param {type:"integer"}
@@ -37,7 +41,12 @@ num_init_cvt_samples = 50000 #@param {type:"integer"}
 num_centroids = 1024 #@param {type:"integer"}
 min_bd = 0. #@param {type:"number"}
 max_bd = 1.0 #@param {type:"number"}
+log_path = "logs"
 
+
+# Check if the logs folder exists, if not, create it
+if not os.path.exists(log_path):
+    os.makedirs(log_path)
 
 # Init environment
 env = environments.create(env_name, episode_length=episode_length)
@@ -69,6 +78,7 @@ init_states = reset_fn(keys)
 
 
 
+# TODO delete this function ,as its BRAX specific
 # Define the fonction to play a step with the policy in the environment
 def play_step_fn(
   env_state,
@@ -99,7 +109,7 @@ def play_step_fn(
 
 
 
-
+# TODO delete this function ,as its BRAX specific
 # Prepare the scoring function
 bd_extraction_fn = environments.behavior_descriptor_extractor[env_name]
 scoring_fn = functools.partial(
@@ -109,6 +119,29 @@ scoring_fn = functools.partial(
     play_step_fn=play_step_fn,
     behavior_descriptor_extractor=bd_extraction_fn,
 )
+
+
+
+def scoring_fn(genotypes, random_key):
+
+    # fitnesses = jnp.ones((batch_size,))
+    # descriptors = jnp.ones((batch_size,))
+
+    fitnesses = jax.random.uniform(random_key, (batch_size, ))
+    descriptors = jax.random.uniform(random_key, (batch_size, 2))
+
+
+
+    return (
+        fitnesses,
+        descriptors,
+        {
+            "state": jnp.ones((batch_size, 2)),
+        },
+        random_key,
+    )
+
+
 
 # Get minimum reward value to make sure qd_score are positive
 reward_offset = environments.reward_offset[env_name]
@@ -121,7 +154,7 @@ metrics_function = functools.partial(
 
 
 
-
+# TODO keep this function, it is used to create the variation function
 # Define emitter
 variation_fn = functools.partial(
     isoline_variation, iso_sigma=iso_sigma, line_sigma=line_sigma
@@ -167,7 +200,7 @@ log_period = 10
 num_loops = int(num_iterations / log_period)
 
 csv_logger = CSVLogger(
-    "mapelites-logs.csv",
+    f"{log_path}/mapelites-logs.csv",
     header=["loop", "iteration", "qd_score", "max_fitness", "coverage", "time"]
 )
 all_metrics = {}
@@ -209,8 +242,9 @@ env_steps = jnp.arange(num_iterations) * episode_length * batch_size
 # create the plots and the grid
 fig, axes = plot_map_elites_results(env_steps=env_steps, metrics=all_metrics, repertoire=repertoire, min_bd=min_bd, max_bd=max_bd)
 
-
-
+# Save and show the plot
+plt.savefig(f"{log_path}/output_plot.png")
+plt.show()
 
 
 
@@ -224,7 +258,6 @@ fig, axes = plot_map_elites_results(env_steps=env_steps, metrics=all_metrics, re
 
 
 # Get contents of repertoire
-repertoire.genotypes, repertoire.fitnesses, repertoire.descriptors
 # print(repertoire.genotypes)
 # print(repertoire.fitnesses)
 # print(repertoire.descriptors)

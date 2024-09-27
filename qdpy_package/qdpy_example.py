@@ -47,7 +47,7 @@ def sine_controller(time, amp, freq, phase, offset):
 model = mujoco.MjModel.from_xml_path('qutee.xml')
 data = mujoco.MjData(model)
 
-duration = 20   # (seconds)
+duration = 40   # (seconds)
 framerate = 30  # (Hz)
 
 
@@ -110,7 +110,8 @@ def save_video(parameters):
 
 
 # paste the parameters from the pickle file into the save_video function
-# save_video([0.10402131760590794, 0.8837563230671379, 0.8515599923224331, 0.13152828703580544, 0.6116614877161808, 0.7472725467010611, 0.5770062905058564, 0.45296427378352044, 0.965559742165479, 0.14217685612645048, 0.0348159244688373, 0.25419219138783655, 0.9112833898511875, 0.6738509939699706, 0.337630717351328, 0.7731381543629358, 0.6826967686957197, 0.26346615524744965, 0.7852935247994226, 0.5716902432368031, 0.5616338826529005, 0.36602266560105834, 0.12054381453433927, 0.7030165484661227, 0.5415126956684571, 0.8000784072179238, 0.7025336373270709, 0.22150082317563569, 0.9268738130881258, 0.2760440597661006, 0.4446339588341546, 0.923528414575281, 0.8264378793246557, 0.6205072648968746, 0.9904717354790828, 0.2759187715851352, 0.942701011522203, 0.708342600522683, 0.5617398920871732, 0.18837575300240406, 0.20186414049123613, 0.07523816524848936, 0.6556777641346274, 0.18451272052549494, 0.9167128753742309, 0.08802407666157874, 0.7611802345927873, 0.635203574335457])
+# save_video([0.566916671961166, 0.6776912232030303, 0.5753615591094349, 0.9020601533608612, 0.2825093839562801, 0.7736458482566407, 0.9130684354289595, 0.40130423698816575, 0.46340324283335366, 0.1055399988078809, 0.15861006084671547, 0.026482324082639508, 0.900416847021696, 0.6158480316582525, 0.11979641696376442, 0.514144854077119, 0.49501012987506354, 0.20303273951794243, 0.6404393998106958, 0.9300480080634687, 0.6117361840655406, 0.6091352071251489, 0.569900708645388, 0.2552246325352725, 0.09805382198080981, 0.22981176529307346, 0.5324530560340079, 0.6088716155617009, 0.25387383963824717, 0.08483812942056967, 0.8241899668049313, 0.8342512127913532, 0.5099619339001565, 0.6968724122233714, 0.8309422815176906, 0.13684285566757282, 0.08300500706687597, 0.6037105984610244, 0.5481270523953921, 0.8806448587569466, 0.19697315451971742, 0.6255277658227066, 0.6385433746359366, 0.23521359051463564, 0.35586218852374374, 0.8748018576704387, 0.5857894861631077, 0.32300714471952696])
+
 
 def eval_fn(parameters):
     """
@@ -155,20 +156,11 @@ def eval_fn(parameters):
 
     # get average roll, pitch, yaw
     rpy_values = np.array(rpy_values)
-    average_rpy = np.mean(rpy_values, axis=0)
-    print("Average Roll:", average_rpy[0])
-    print("Average Pitch:", average_rpy[1])
-    print("Average Yaw:", average_rpy[2])
-
-
+    average_roll, average_pitch, average_yaw = np.mean(rpy_values, axis=0)
 
     # Get the roll, pitch, and yaw of the robot in the end position
     quaternion = data.xquat[body_index]
     roll, pitch, yaw = quat_to_rpy(quaternion)
-    print(f"Roll: {roll} radians")
-    print(f"Pitch: {pitch} radians")
-    print(f"Yaw: {yaw} radians")
-
 
     # get the end position of the robot
     end_position = np.copy(data.xpos[body_index])
@@ -189,8 +181,8 @@ def eval_fn(parameters):
     # Compute the features
     # features = (x,y,z)
     # features = (roll, pitch, yaw)
-    # features = (average_rpy[0], average_rpy[1], average_rpy[2])
-    features = (average_rpy[0], average_rpy[1], z)
+    # features = (average_roll, average_pitch, average_yaw)
+    features = (z, average_roll, average_pitch)
 
     return (fitness,), features
 
@@ -198,8 +190,8 @@ def eval_fn(parameters):
 
 if __name__ == "__main__":
     # Create container and algorithm. Here we use MAP-Elites, by illuminating a Grid container by evolution.
-    grid = containers.Grid(shape=(100,100,20), max_items_per_bin=1, fitness_domain=((0, 1.),), features_domain=((-5, 5), (-5, 5), (0., 1.)))
-    algo = algorithms.RandomSearchMutPolyBounded(grid, budget=4000, batch_size=20,
+    grid = containers.Grid(shape=(10,50,50), max_items_per_bin=1, fitness_domain=((0, 0.6),), features_domain=((0., 0.3), (-2., 2.), (-3, 3)))
+    algo = algorithms.RandomSearchMutPolyBounded(grid, budget=4000, batch_size=10,
             dimension=48, optimisation_task="maximization")
 
     # Create a logger to pretty-print everything and generate output data files
