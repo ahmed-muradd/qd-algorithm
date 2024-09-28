@@ -1,4 +1,4 @@
-import numpy as np
+import numpy as np, math
 
 
 # Function to convert a quaternion to Euler angles (roll, pitch, yaw)
@@ -23,3 +23,28 @@ def quat_to_rpy(quat):
     yaw = np.arctan2(siny_cosp, cosy_cosp)
 
     return np.array([roll, pitch, yaw])
+
+
+
+# simulation setup
+def sine_controller(time, amp, freq, phase, offset):
+    return amp*1.507 * np.sin(freq*time + phase) + offset
+
+# simulation setup
+def tanh_controller(time, amp, freq, phase, offset):
+    amp = amp * math.pi/2
+    # offset 0.5 is no offset
+    # offset of 0 is -pi offset
+    # offset of 1 is pi offset
+    offset = 2*(offset-0.5) * math.pi/2
+
+    return amp * np.tanh(4*math.sin(2*math.pi*(time + phase))) + offset
+
+
+
+
+
+if __name__ == "__main__":
+    for i in range(120):
+        # print(sine_controller(i/60, 1, 10, 0, 0))
+        print(tanh_controller(i/60, 0.01, 1, 0, 0.5))

@@ -36,81 +36,18 @@ import mediapy
 from PIL import Image
 import numpy as np
 
+# import helper functions
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from helper_functions import quat_to_rpy
+from helper_functions import quat_to_rpy, tanh_controller
+from generate_video import generate_video
 
-
-# simulation setup
-def sine_controller(time, amp, freq, phase, offset):
-    return amp * np.sin(freq*time + phase) + offset
 
 model = mujoco.MjModel.from_xml_path('qutee.xml')
 data = mujoco.MjData(model)
 
-duration = 40   # (seconds)
-framerate = 30  # (Hz)
+duration = 10   # (seconds)
+framerate = 60  # (Hz)
 
-
-
-
-
-def save_video(parameters):
-    '''
-    input:
-    controllers is a 12X4 Matrix
-
-    output:
-    saves video of robot in directory
-    '''
-
-    parameters = np.reshape(parameters, (12, 4))
-
-    renderer = mujoco.Renderer(model)
-
-    # enable joint visualization option:
-    scene_option = mujoco.MjvOption()
-    scene_option.flags[mujoco.mjtVisFlag.mjVIS_JOINT] = True
-
-
-    frames = []
-    mujoco.mj_resetData(model, data)
-    
-    fused = np.zeros((12, 5))
-    fused[:, 1:] = parameters
-    
-    # run each frame on simulation
-    while data.time < duration:
-        controllers = []
-
-        fused[:, 0] = data.time
-        
-        # applies sine wave to each parameter
-        for row in fused:
-            controllers.append(sine_controller(row[0], row[1], row[2], row[3], row[4]))
-
-        data.ctrl = controllers
-        mujoco.mj_step(model, data)
-
-        # creates a video
-        if len(frames) < data.time * framerate:
-            renderer.update_scene(data, scene_option=scene_option)
-            pixels = renderer.render()
-            frames.append(pixels)  
-
-    # Simulate and display video with increased size.
-    bigger_frames = []
-    for frame in frames: 
-        image = Image.fromarray(frame)
-        bigger_image = image.resize((1280, 720))
-        bigger_frames.append(np.array(bigger_image))
-
-    mediapy.write_video("qutee.mp4", bigger_frames, fps=framerate)
-
-    renderer.close()
-
-
-# paste the parameters from the pickle file into the save_video function
-# save_video([0.566916671961166, 0.6776912232030303, 0.5753615591094349, 0.9020601533608612, 0.2825093839562801, 0.7736458482566407, 0.9130684354289595, 0.40130423698816575, 0.46340324283335366, 0.1055399988078809, 0.15861006084671547, 0.026482324082639508, 0.900416847021696, 0.6158480316582525, 0.11979641696376442, 0.514144854077119, 0.49501012987506354, 0.20303273951794243, 0.6404393998106958, 0.9300480080634687, 0.6117361840655406, 0.6091352071251489, 0.569900708645388, 0.2552246325352725, 0.09805382198080981, 0.22981176529307346, 0.5324530560340079, 0.6088716155617009, 0.25387383963824717, 0.08483812942056967, 0.8241899668049313, 0.8342512127913532, 0.5099619339001565, 0.6968724122233714, 0.8309422815176906, 0.13684285566757282, 0.08300500706687597, 0.6037105984610244, 0.5481270523953921, 0.8806448587569466, 0.19697315451971742, 0.6255277658227066, 0.6385433746359366, 0.23521359051463564, 0.35586218852374374, 0.8748018576704387, 0.5857894861631077, 0.32300714471952696])
 
 
 def eval_fn(parameters):
@@ -119,10 +56,9 @@ def eval_fn(parameters):
         input is a 48 element array of control parameters
 
     output:
-        (fitness, feauture0, feature1)
+        (fitness, feautures)
         fitness is the score of the controller
-        feature 0 is ?
-        feature 1 is ?
+        features is hwo we define the behavior of the robot
     """
 
     parameters = np.reshape(parameters, (12, 4))
@@ -134,25 +70,21 @@ def eval_fn(parameters):
     initial_position = np.copy(data.xpos[body_index])
     rotation_matrix = data.xmat[body_index].reshape(3, 3)
 
-    fused = np.zeros((12, 5))
-    fused[:, 1:] = parameters
 
     rpy_values = []
-    while data.time < duration:        
+    while data.time < duration:
         controllers = []
-        fused[:, 0] = data.time
         
         # applies sine wave to each parameter
-        for row in fused:
-            controllers.append(sine_controller(row[0], row[1], row[2], row[3], row[4]))
+        for row in parameters:
+            controllers.append(tanh_controller(data.time, row[0], row[1], row[2], row[3]))
 
         data.ctrl = controllers
         mujoco.mj_step(model, data)
 
         # Get the roll, pitch, and yaw
         quaternion = data.xquat[body_index]
-        roll, pitch, yaw = quat_to_rpy(quaternion)
-        rpy_values.append([roll, pitch, yaw])
+        rpy_values.append(quat_to_rpy(quaternion))
 
     # get average roll, pitch, yaw
     rpy_values = np.array(rpy_values)
@@ -190,16 +122,22 @@ def eval_fn(parameters):
 
 if __name__ == "__main__":
     # Create container and algorithm. Here we use MAP-Elites, by illuminating a Grid container by evolution.
-    grid = containers.Grid(shape=(10,50,50), max_items_per_bin=1, fitness_domain=((0, 0.6),), features_domain=((0., 0.3), (-2., 2.), (-3, 3)))
-    algo = algorithms.RandomSearchMutPolyBounded(grid, budget=4000, batch_size=10,
+    grid = containers.Grid(shape=(10,10,10), max_items_per_bin=1, fitness_domain=((0, 0.6),), features_domain=((0., 0.3), (-2., 2.), (-3., 3.)))
+    algo = algorithms.RandomSearchMutPolyBounded(grid, budget=400, batch_size=100,
             dimension=48, optimisation_task="maximization")
 
     # Create a logger to pretty-print everything and generate output data files
     logger = algorithms.TQDMAlgorithmLogger(algo)
 
     # Run illumination process !
-    with ParallelismManager("none") as pMgr:
-        best = algo.optimise(eval_fn, executor = pMgr.executor, batch_mode=False) # Disable batch_mode (steady-state mode) to ask/tell new individuals without waiting the completion of each batch
+    # If on mac os, use "multiprocessing" instead of "none" to enable parallelism on cpu.
+    # Not checked of linux support multiprocessing.
+    if sys.platform == "darwin":
+        with ParallelismManager("multiprocessing") as pMgr:
+            best = algo.optimise(eval_fn, executor = pMgr.executor, batch_mode=False)
+    else:
+        with ParallelismManager("none") as pMgr:
+            best = algo.optimise(eval_fn, executor = pMgr.executor, batch_mode=False) # Disable batch_mode (steady-state mode) to ask/tell new individuals without waiting the completion of each batch
 
     # Print results info
     print("\n" + algo.summary())
@@ -209,4 +147,4 @@ if __name__ == "__main__":
 
     print("\nAll results are available in the '%s' pickle file." % logger.final_filename)
 
-    save_video(best)
+    generate_video(best, duration, framerate)
