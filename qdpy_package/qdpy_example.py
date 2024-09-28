@@ -26,7 +26,7 @@ example from : https://gitlab.com/leo.cazenille/qdpy/-/blob/master/examples/cust
 
 from qdpy import algorithms, containers, plots
 from qdpy.base import ParallelismManager
-import math, random, time
+import math, random, time, sys, os
 import numpy as np
 
 
@@ -36,6 +36,9 @@ import mediapy
 from PIL import Image
 import numpy as np
 
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from helper_functions import quat_to_rpy
+
 
 # simulation setup
 def sine_controller(time, amp, freq, phase, offset):
@@ -44,8 +47,10 @@ def sine_controller(time, amp, freq, phase, offset):
 model = mujoco.MjModel.from_xml_path('qutee.xml')
 data = mujoco.MjData(model)
 
-duration = 60   # (seconds)
-framerate = 60  # (Hz)
+duration = 40   # (seconds)
+framerate = 30  # (Hz)
+
+
 
 
 
@@ -104,6 +109,9 @@ def save_video(parameters):
     renderer.close()
 
 
+# paste the parameters from the pickle file into the save_video function
+# save_video([0.566916671961166, 0.6776912232030303, 0.5753615591094349, 0.9020601533608612, 0.2825093839562801, 0.7736458482566407, 0.9130684354289595, 0.40130423698816575, 0.46340324283335366, 0.1055399988078809, 0.15861006084671547, 0.026482324082639508, 0.900416847021696, 0.6158480316582525, 0.11979641696376442, 0.514144854077119, 0.49501012987506354, 0.20303273951794243, 0.6404393998106958, 0.9300480080634687, 0.6117361840655406, 0.6091352071251489, 0.569900708645388, 0.2552246325352725, 0.09805382198080981, 0.22981176529307346, 0.5324530560340079, 0.6088716155617009, 0.25387383963824717, 0.08483812942056967, 0.8241899668049313, 0.8342512127913532, 0.5099619339001565, 0.6968724122233714, 0.8309422815176906, 0.13684285566757282, 0.08300500706687597, 0.6037105984610244, 0.5481270523953921, 0.8806448587569466, 0.19697315451971742, 0.6255277658227066, 0.6385433746359366, 0.23521359051463564, 0.35586218852374374, 0.8748018576704387, 0.5857894861631077, 0.32300714471952696])
+
 
 def eval_fn(parameters):
     """
@@ -123,14 +131,15 @@ def eval_fn(parameters):
     mujoco.mj_resetData(model, data)
     #start position of robot
     body_index = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "base_link")
-    initial_position = np.copy(data.xpos[body_index])   
+    initial_position = np.copy(data.xpos[body_index])
+    rotation_matrix = data.xmat[body_index].reshape(3, 3)
 
     fused = np.zeros((12, 5))
     fused[:, 1:] = parameters
 
+    rpy_values = []
     while data.time < duration:        
         controllers = []
-
         fused[:, 0] = data.time
         
         # applies sine wave to each parameter
@@ -140,27 +149,49 @@ def eval_fn(parameters):
         data.ctrl = controllers
         mujoco.mj_step(model, data)
 
+        # Get the roll, pitch, and yaw
+        quaternion = data.xquat[body_index]
+        roll, pitch, yaw = quat_to_rpy(quaternion)
+        rpy_values.append([roll, pitch, yaw])
 
-    # where the robot stopped
+    # get average roll, pitch, yaw
+    rpy_values = np.array(rpy_values)
+    average_roll, average_pitch, average_yaw = np.mean(rpy_values, axis=0)
+
+    # Get the roll, pitch, and yaw of the robot in the end position
+    quaternion = data.xquat[body_index]
+    roll, pitch, yaw = quat_to_rpy(quaternion)
+
+    # get the end position of the robot
     end_position = np.copy(data.xpos[body_index])
-    #calculating fitness
+
+    # robot's z rotation
+    body_z_axis_world = rotation_matrix[:, 2]
+    # Check if the body is upside down by taking the dot product
+    z_dot_product = np.dot(body_z_axis_world, np.array([0, 0, 1]))
+
+
+    #calculating fitness, 0 if robot is upside down
+    fitness = 0.0
     x, y, z = end_position - initial_position
-    fitness = x**2 + y**2 + z**2
+    if z_dot_product > 0:
+        fitness = x**2 + y**2 + z**2
+
 
     # Compute the features
-    feature0 = x
-    feature1 = y
-    feature2 = z
-    feature3 = 0
+    # features = (x,y,z)
+    # features = (roll, pitch, yaw)
+    # features = (average_roll, average_pitch, average_yaw)
+    features = (z, average_roll, average_pitch)
 
-    return (fitness,), (feature0, feature1, feature2, feature3)
+    return (fitness,), features
 
 
 
 if __name__ == "__main__":
     # Create container and algorithm. Here we use MAP-Elites, by illuminating a Grid container by evolution.
-    grid = containers.Grid(shape=(16,16,16,16), max_items_per_bin=1, fitness_domain=((0, 2.),), features_domain=((-2, 2), (-2, 2), (-2, 2), (-2, 2)))
-    algo = algorithms.RandomSearchMutPolyBounded(grid, budget=100, batch_size=10,
+    grid = containers.Grid(shape=(10,50,50), max_items_per_bin=1, fitness_domain=((0, 0.6),), features_domain=((0., 0.3), (-2., 2.), (-3, 3)))
+    algo = algorithms.RandomSearchMutPolyBounded(grid, budget=4000, batch_size=10,
             dimension=48, optimisation_task="maximization")
 
     # Create a logger to pretty-print everything and generate output data files

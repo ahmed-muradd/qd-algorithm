@@ -1,8 +1,13 @@
 .vscode
 .venv
+__pycache__
 
-
+# mujuco temp/output files
 *.pdf
 *.p
 qutee.mp4
 MUJOCO_LOG.TXT
+
+
+# qdax temp/output files
+logs
