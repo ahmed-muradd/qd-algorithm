@@ -45,15 +45,15 @@ from generate_video import generate_video
 model = mujoco.MjModel.from_xml_path('qutee.xml')
 data = mujoco.MjData(model)
 
-duration = 10   # (seconds)
-framerate = 60  # (Hz)
+duration = 15   # (seconds)
+framerate = 20  # (Hz)
 
 
 
 def eval_fn(parameters):
     """
     input:
-        input is a 48 element array of control parameters
+        input is a 36 element array of control parameters
 
     output:
         (fitness, feautures)
@@ -61,7 +61,7 @@ def eval_fn(parameters):
         features is hwo we define the behavior of the robot
     """
 
-    parameters = np.reshape(parameters, (12, 4))
+    parameters = np.reshape(parameters, (12, 3))
 
     # simulation part
     mujoco.mj_resetData(model, data)
@@ -77,7 +77,7 @@ def eval_fn(parameters):
         
         # applies sine wave to each parameter
         for row in parameters:
-            controllers.append(tanh_controller(data.time, row[0], row[1], row[2], row[3]))
+            controllers.append(tanh_controller(data.time, row[0], row[1], row[2]))
 
         data.ctrl = controllers
         mujoco.mj_step(model, data)
@@ -107,14 +107,13 @@ def eval_fn(parameters):
     fitness = 0.0
     x, y, z = end_position - initial_position
     if z_dot_product > 0:
-        fitness = x**2 + y**2 + z**2
+        fitness = x**2 + y**2
 
 
     # Compute the features
     # features = (x,y,z)
     # features = (roll, pitch, yaw)
-    # features = (average_roll, average_pitch, average_yaw)
-    features = (z, average_roll, average_pitch)
+    features = (average_roll, average_pitch, average_yaw)
 
     return (fitness,), features
 
@@ -122,9 +121,9 @@ def eval_fn(parameters):
 
 if __name__ == "__main__":
     # Create container and algorithm. Here we use MAP-Elites, by illuminating a Grid container by evolution.
-    grid = containers.Grid(shape=(10,10,10), max_items_per_bin=1, fitness_domain=((0, 0.6),), features_domain=((0., 0.3), (-2., 2.), (-3., 3.)))
-    algo = algorithms.RandomSearchMutPolyBounded(grid, budget=400, batch_size=100,
-            dimension=48, optimisation_task="maximization")
+    grid = containers.Grid(shape=(5,5,5), max_items_per_bin=1, fitness_domain=((0, 0.6),), features_domain=((0., 0.3), (-2., 2.), (-3., 3.)))
+    algo = algorithms.RandomSearchMutPolyBounded(grid, budget=4000, batch_size=100,
+            dimension=36, optimisation_task="maximization")
 
     # Create a logger to pretty-print everything and generate output data files
     logger = algorithms.TQDMAlgorithmLogger(algo)
@@ -147,4 +146,4 @@ if __name__ == "__main__":
 
     print("\nAll results are available in the '%s' pickle file." % logger.final_filename)
 
-    generate_video(best, duration, framerate)
+    generate_video(best, duration, framerate=60)

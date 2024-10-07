@@ -31,7 +31,7 @@ def sine_controller(time, amp, freq, phase, offset):
     return amp*1.507 * np.sin(freq*time + phase) + offset
 
 # simulation setup
-def tanh_controller(time, amp, freq, phase, offset):
+def tanh_controller(time, amp, phase, offset):
     amp = amp * math.pi/2
     # offset 0.5 is no offset
     # offset of 0 is -pi offset
@@ -47,4 +47,4 @@ def tanh_controller(time, amp, freq, phase, offset):
 if __name__ == "__main__":
     for i in range(120):
         # print(sine_controller(i/60, 1, 10, 0, 0))
-        print(tanh_controller(i/60, 0.01, 1, 0, 0.5))
+        print(tanh_controller(i/60, 0.01, 0, 0.5))

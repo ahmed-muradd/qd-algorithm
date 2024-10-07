@@ -15,13 +15,13 @@ data = mujoco.MjData(model)
 def generate_video(parameters, duration, framerate):
     '''
     input:
-    controllers is a 12X4 Matrix
+    controllers is a 12X3 Matrix
 
     output:
     generates video of robot in directory
     '''
 
-    parameters = np.reshape(parameters, (12, 4))
+    parameters = np.reshape(parameters, (12, 3))
 
     renderer = mujoco.Renderer(model)
 
@@ -40,7 +40,7 @@ def generate_video(parameters, duration, framerate):
         
         # applies sine wave to each parameter
         for row in parameters:
-            controllers.append(tanh_controller(data.time, row[0], row[1], row[2], row[3]))
+            controllers.append(tanh_controller(data.time, row[0], row[1], row[2]))
 
         data.ctrl = controllers
         mujoco.mj_step(model, data)
@@ -67,14 +67,12 @@ def generate_video(parameters, duration, framerate):
 if __name__ == '__main__':
     # paste the parameters from the pickle file into the save_video function
     #list of 48 zeroes
-    parameters = [0.0]*48
+    parameters = [0.0]*36
     # every 4.th element is the offset and should be 0.5
-    for i in range(3, 48, 4):
+    for i in range(2, 36, 3):
         parameters[i] = 0.5
 
 
-    parameters[5] = 0.00001
-    parameters[6] = 1
-    parameters[8] = 0.5
+    parameters[0] = 0.1
 
     generate_video(parameters, 10, 60)
