@@ -40,7 +40,7 @@ def generate_video(parameters, duration, framerate):
         
         # applies sine wave to each parameter
         for row in parameters:
-            controllers.append(tanh_controller(data.time, row[0], row[1], row[2]))
+            controllers.append(tanh_controller(data.time, row[0], row[1], row[2], row[3]))
 
         data.ctrl = controllers
         mujoco.mj_step(model, data)
@@ -67,12 +67,14 @@ def generate_video(parameters, duration, framerate):
 if __name__ == '__main__':
     # paste the parameters from the pickle file into the save_video function
     #list of 48 zeroes
-    parameters = [0.0]*36
+    parameters = [0.0]*48
     # every 4.th element is the offset and should be 0.5
-    for i in range(2, 36, 3):
+    for i in range(3, 48, 4):
         parameters[i] = 0.5
 
 
-    parameters[0] = 0.1
+    parameters[5] = 0.00001
+    parameters[6] = 1
+    parameters[8] = 0.5
 
     generate_video(parameters, 10, 60)
