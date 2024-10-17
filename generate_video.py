@@ -12,7 +12,7 @@ model = mujoco.MjModel.from_xml_path('qutee.xml')
 data = mujoco.MjData(model)
 
 
-def generate_video(parameters, duration, framerate):
+def generate_video(parameters, duration=10, framerate=60):
     '''
     input:
     controllers is a 12X3 Matrix
@@ -20,7 +20,7 @@ def generate_video(parameters, duration, framerate):
     output:
     generates video of robot in directory
     '''
-
+    print("Creating video of simulation...")
     parameters = np.reshape(parameters, (12, 3))
 
     renderer = mujoco.Renderer(model)
@@ -40,7 +40,7 @@ def generate_video(parameters, duration, framerate):
         
         # applies sine wave to each parameter
         for row in parameters:
-            controllers.append(tanh_controller(data.time, row[0], row[1], row[2], row[3]))
+            controllers.append(tanh_controller(data.time, row[0], row[1], row[2]))
 
         data.ctrl = controllers
         mujoco.mj_step(model, data)
@@ -61,6 +61,7 @@ def generate_video(parameters, duration, framerate):
     mediapy.write_video("qutee.mp4", bigger_frames, fps=framerate)
 
     renderer.close()
+    print("Video generated!")
 
 
 # if ran as main, generate video

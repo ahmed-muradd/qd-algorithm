@@ -27,8 +27,7 @@ import jax
 from jax import numpy as jp
 from qdpy import algorithms, containers, plots
 from qdpy.base import ParallelismManager
-import math, random, time, sys, os
-from math import sin, sqrt, pi, tanh
+import random, time, sys, os
 import numpy as np
 from random import random
 
@@ -36,58 +35,77 @@ from random import random
 import mujoco
 import mujoco.viewer
 from mujoco import mjx
-import mediapy
-from PIL import Image
 import numpy as np
 
 # import helper functions
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from helper_functions import quat_to_rpy, tanh_controller
+from helper_functions import *
 from generate_video import generate_video
 
-def tan_control_mjx(data, cont):
-    new_data = data
-    amp = cont[:, 0]*pi/2
-    offset = 2*(cont[:, 2]-0.5) * pi/2
-    ctrl = amp * jp.tanh(4*jp.sin(2*pi*(time + cont[:, 1]))) + offset
-    new_data = new_data.replace(ctrl=ctrl)
-    return new_data
-
-def eval_batch_fn(controller_batch, batch_size, generations, model, data, duration):
+def eval_batch_fn(controller_batch, model, data, batch_size=200, duration=10):
     """
     input:
-        controller_batch: batch of controllers to be evaluated
+        controller_batch: a vector of size batch_size of 12X3 matrixes of controller parameters
         batch_size: total evaluations/simulations
-        model: mujoco's model class
-        data: mujoco's data class
+        model: batch of mujoco's model class
+        data: batch of mujoco's data class
+        duration: simulation duration (s)
 
     output:
         (fitness, feautures)
-        fitness is the score of the controller
-        features is hwo we define the behavior of the robot
+        fitness: a vector of fitnesses of size N, where N is the Batch_size
+        features:  a batch_size X 3 matrix of each robot's average roll pitch and yaw. (how we define the behavior of the robot)
     """
 
     # jax functions
-    jit_tan = jax.jit(jax.vmap(tan_control_mjx,(0,0)))
-    jit_step = jax.jit(jax.vmap(mjx.step,in_axes=(None, 0)))
+    jit_tan = jax.jit(jax.vmap(tan_control_mjx, (0,0)))
+    jit_step = jax.jit(jax.vmap(mjx.step, in_axes=(None, 0)))
+    jit_rpy = jax.jit(jax.vmap(mjx_quat_to_rpy))
+
+    # rotation matrix of each robot in batch
+    rotation_matrix = data.xmat[:, 1]
+    # log roll pitch and yaw for each robot
+    rpy_values = []
 
     # measure time of evalation of batch
     timecalc = time.time()
-    # simulation part
+
     # run batch of simulations on gpu
-    while data.time[0] < duration:        
-        data = jit_tan(data, controller_batch)
-        data = jit_step(model, data)
+    while data.time[0] < duration:    
+        milestone = data.time[0]  
+        # info every half second of simulation
+        while (data.time[0] - milestone) < 0.5:
+            # set angle of each actuator for each robot
+            data = jit_tan(data, controller_batch)
+            # move simulation forward
+            data = jit_step(model, data)
+            # Get the roll, pitch, and yaw
+            quaternion = data.xquat[:, 1]
+            rpy = jit_rpy(quaternion)
+            rpy_values.append(rpy)
+
+        print(f"Batch Progress: {(data.time[0] / duration) * 100:.2f}%")
+
+    #calculate average of the logged roll, pitch and yaw for each robot
+    rpy_values = np.array(rpy_values)
+    features = np.zeros((batch_size, 3))
+
+    features = np.mean(rpy_values, axis=0)
+            
     # measured time
-    print(f'batshize: {batch_size}, xposlen: {data.xpos.__len__()}')
-    print("Simulation of", batch_size, "robots took", (time.time() - timecalc) / 60, "minutes")
+    print(f"Simulation of {batch_size} robots took {(time.time() - timecalc) / 60:.2f} minutes")
 
-    return 1
+    # fitness evaluation
+    final_pos = data.xpos[:, 1]
+    # focus only on x, y position
+    fitness = final_pos[:, 0]**2 + final_pos[:, 1]**2
+
+    return data, fitness, features
 
 
-def create_batch(batch_size, model):
+def create_rand_batch(batch_size, model):
     '''
-    generates a batch of controllers
+    generates a batch of random controllers
     '''
     controllers = []
     for j in range(batch_size):
@@ -102,18 +120,29 @@ def create_batch(batch_size, model):
 
 
 if __name__ == "__main__":
-    duration = 10   # (seconds)
-    fps = 60 
-    batchsize = 20
-    generations = 2
+    batchsize = 2
+    fps = 60
     # converts qutee's xml file to simulation classes
     mj_model = mujoco.MjModel.from_xml_path('qutee.xml')
     mj_data = mujoco.MjData(mj_model)
     mjx_model = mjx.put_model(mj_model)
     mjx_data = mjx.put_data(mj_model, mj_data)
 
+    # creates a batch of mjx_data
+    rng = jax.random.PRNGKey(0)
+    rng = jax.random.split(rng, batchsize)
+    batchify = jax.vmap(lambda rng: mjx_data)
+    mjx_data = batchify(rng)
+
     # create random controllers to be evaluated
-    controller_batch = create_batch(batchsize, mj_model)
-    eval_batch_fn(controller_batch, batchsize, generations, mjx_model, mjx_data, duration)
+    controller_batch = create_rand_batch(batchsize, mj_model)
+    mjx_data, fitness, features = eval_batch_fn(controller_batch, mjx_model, mjx_data, batchsize)
+
+    # best generate video of performing controller
+    best_fitness = max(fitness)
+    best_index = jp.where(fitness == best_fitness)[0]
+    best_controller = controller_batch[best_index]
+    generate_video(best_controller)
+
 
     
