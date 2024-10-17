@@ -121,7 +121,6 @@ def create_rand_batch(batch_size, model):
 
 if __name__ == "__main__":
     batchsize = 2
-    fps = 60
     # converts qutee's xml file to simulation classes
     mj_model = mujoco.MjModel.from_xml_path('qutee.xml')
     mj_data = mujoco.MjData(mj_model)
