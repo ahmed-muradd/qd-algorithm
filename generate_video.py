@@ -12,7 +12,7 @@ model = mujoco.MjModel.from_xml_path('qutee.xml')
 data = mujoco.MjData(model)
 
 
-def generate_video(parameters, duration, framerate):
+def generate_video(parameters, duration=10, framerate=60):
     '''
     input:
     controllers is a 12X3 Matrix
@@ -20,10 +20,10 @@ def generate_video(parameters, duration, framerate):
     output:
     generates video of robot in directory
     '''
-
+    print("Creating video of simulation...")
     parameters = np.reshape(parameters, (12, 3))
 
-    renderer = mujoco.Renderer(model)
+    renderer = mujoco.Renderer(model, 600, 800)
 
     # enable joint visualization option:
     scene_option = mujoco.MjvOption()
@@ -33,7 +33,7 @@ def generate_video(parameters, duration, framerate):
     frames = []
     mujoco.mj_resetData(model, data)
     
-    
+
     # run each frame on simulation
     while data.time < duration:
         controllers = []
@@ -51,28 +51,24 @@ def generate_video(parameters, duration, framerate):
             pixels = renderer.render()
             frames.append(pixels)
 
-    # Simulate and display video with increased size.
-    bigger_frames = []
-    for frame in frames: 
-        image = Image.fromarray(frame)
-        bigger_image = image.resize((1280, 720))
-        bigger_frames.append(np.array(bigger_image))
-
-    mediapy.write_video("qutee.mp4", bigger_frames, fps=framerate)
+    mediapy.write_video("qutee.mp4", frames, fps=framerate)
 
     renderer.close()
+    print("Video generated!")
 
 
 # if ran as main, generate video
 if __name__ == '__main__':
     # paste the parameters from the pickle file into the save_video function
     #list of 48 zeroes
-    parameters = [0.0]*36
+    parameters = [0.0]*48
     # every 4.th element is the offset and should be 0.5
-    for i in range(2, 36, 3):
+    for i in range(3, 48, 4):
         parameters[i] = 0.5
 
 
-    parameters[0] = 0.1
+    parameters[5] = 0.00001
+    parameters[6] = 1
+    parameters[8] = 0.5
 
     generate_video(parameters, 10, 60)
