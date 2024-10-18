@@ -40,6 +40,7 @@ import numpy as np
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from helper_functions import quat_to_rpy, tanh_controller
 from generate_video import generate_video
+from mjx_qdpy_example import eval_batch_fn
 
 
 model = mujoco.MjModel.from_xml_path('qutee.xml')
@@ -58,6 +59,7 @@ def eval_fn(parameters):
         fitness is the score of the controller
         features is hwo we define the behavior of the robot
     """
+    
 
     parameters = np.reshape(parameters, (12, 3))
 
@@ -134,7 +136,7 @@ if __name__ == "__main__":
             best = algo.optimise(eval_fn, executor = pMgr.executor, batch_mode=False)
     else:
         with ParallelismManager("multiprocessing") as pMgr:
-            best = algo.optimise(eval_fn, executor = pMgr.executor, batch_mode=False) # Disable batch_mode (steady-state mode) to ask/tell new individuals without waiting the completion of each batch
+            best = algo.optimise(eval_batch_fn, executor = pMgr.executor, batch_mode=True, send_several_suggestions_to_fn=True, max_nb_suggestions_per_call=128) # Disable batch_mode (steady-state mode) to ask/tell new individuals without waiting the completion of each batch
 
     # Print results info
     print("\n" + algo.summary())

@@ -47,7 +47,33 @@ from generate_video import generate_video
 # jax.config.update('jax_platform_name', "cpu")
 print(jax.devices())
 
-def eval_batch_fn(controller_batch, model, data, batch_size=500, duration=10):
+
+def setup_sim():
+    batchsize = 512
+    duration = 10
+    # converts qutee's xml file to simulation classes
+    mj_model = mujoco.MjModel.from_xml_path('qutee.xml')
+
+    #options = mujoco.MjOptions()
+    #options.solver = 1 
+
+
+    mj_data = mujoco.MjData(mj_model)
+    mjx_model = mjx.put_model(mj_model)
+    mjx_data = mjx.put_data(mj_model, mj_data)
+
+    # creates a batch of mjx_data
+    rng = jax.random.PRNGKey(0)
+    rng = jax.random.split(rng, batchsize)
+    batchify = jax.vmap(lambda rng: mjx_data)
+    mjx_data = batchify(rng)
+
+    return mjx_model, mjx_data, batchsize, duration
+
+
+
+
+def eval_batch_fn(controller_batch=None):
     """
     input:
         controller_batch: a vector of size batch_size of 12X3 matrixes of controller parameters
@@ -61,6 +87,17 @@ def eval_batch_fn(controller_batch, model, data, batch_size=500, duration=10):
         fitness: a vector of fitnesses of size N, where N is the Batch_size
         features:  a batch_size X 3 matrix of each robot's average roll pitch and yaw. (how we define the behavior of the robot)
     """
+
+    model, data, batch_size, duration = setup_sim()
+
+
+    if controller_batch == None:
+        # create random controllers to be evaluated
+        controller_batch = create_rand_batch(batch_size, model)
+    else:
+        batch_size = len(controller_batch)
+
+    controller_batch = jp.reshape(controller_batch, (batch_size, 12, 3))
 
     # jax functions
     jit_tan = jax.jit(jax.vmap(tan_control_mjx, (0,0)))
@@ -108,6 +145,10 @@ def eval_batch_fn(controller_batch, model, data, batch_size=500, duration=10):
     return data, fitness, features
 
 
+
+
+
+
 def create_rand_batch(batch_size, model):
     '''
     generates a batch of random controllers
@@ -125,33 +166,13 @@ def create_rand_batch(batch_size, model):
 
 
 if __name__ == "__main__":
-    batchsize = 65536
-    # converts qutee's xml file to simulation classes
-    mj_model = mujoco.MjModel.from_xml_path('qutee.xml')
-
-    #options = mujoco.MjOptions()
-    #options.solver = 1 
-
-
-    mj_data = mujoco.MjData(mj_model)
-    mjx_model = mjx.put_model(mj_model)
-    mjx_data = mjx.put_data(mj_model, mj_data)
-
-    # creates a batch of mjx_data
-    rng = jax.random.PRNGKey(0)
-    rng = jax.random.split(rng, batchsize)
-    batchify = jax.vmap(lambda rng: mjx_data)
-    mjx_data = batchify(rng)
-
-    # create random controllers to be evaluated
-    controller_batch = create_rand_batch(batchsize, mj_model)
-    mjx_data, fitness, features = eval_batch_fn(controller_batch, mjx_model, mjx_data, batchsize)
+    mjx_data, fitness, features = eval_batch_fn()
 
     # best generate video of performing controller
     best_fitness = max(fitness)
     best_index = jp.where(fitness == best_fitness)[0]
-    best_controller = controller_batch[best_index]
-    generate_video(best_controller)
+    # best_controller = controller_batch[best_index]
+    # generate_video(best_controller)
 
 
     
