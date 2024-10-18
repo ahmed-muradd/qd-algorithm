@@ -23,7 +23,7 @@ def generate_video(parameters, duration=10, framerate=60):
     print("Creating video of simulation...")
     parameters = np.reshape(parameters, (12, 3))
 
-    renderer = mujoco.Renderer(model)
+    renderer = mujoco.Renderer(model, 600, 800)
 
     # enable joint visualization option:
     scene_option = mujoco.MjvOption()
@@ -33,7 +33,7 @@ def generate_video(parameters, duration=10, framerate=60):
     frames = []
     mujoco.mj_resetData(model, data)
     
-    
+
     # run each frame on simulation
     while data.time < duration:
         controllers = []
@@ -51,14 +51,7 @@ def generate_video(parameters, duration=10, framerate=60):
             pixels = renderer.render()
             frames.append(pixels)
 
-    # Simulate and display video with increased size.
-    bigger_frames = []
-    for frame in frames: 
-        image = Image.fromarray(frame)
-        bigger_image = image.resize((1280, 720))
-        bigger_frames.append(np.array(bigger_image))
-
-    mediapy.write_video("qutee.mp4", bigger_frames, fps=framerate)
+    mediapy.write_video("qutee.mp4", frames, fps=framerate)
 
     renderer.close()
     print("Video generated!")

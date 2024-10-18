@@ -37,12 +37,17 @@ import mujoco.viewer
 from mujoco import mjx
 import numpy as np
 
+import time
+
 # import helper functions
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from helper_functions import *
 from generate_video import generate_video
 
-def eval_batch_fn(controller_batch, model, data, batch_size=200, duration=10):
+# jax.config.update('jax_platform_name', "cpu")
+print(jax.devices())
+
+def eval_batch_fn(controller_batch, model, data, batch_size=500, duration=10):
     """
     input:
         controller_batch: a vector of size batch_size of 12X3 matrixes of controller parameters
@@ -74,7 +79,7 @@ def eval_batch_fn(controller_batch, model, data, batch_size=200, duration=10):
     while data.time[0] < duration:    
         milestone = data.time[0]  
         # info every half second of simulation
-        while (data.time[0] - milestone) < 0.5:
+        while (data.time[0] - milestone) < 0.1:
             # set angle of each actuator for each robot
             data = jit_tan(data, controller_batch)
             # move simulation forward
@@ -120,9 +125,14 @@ def create_rand_batch(batch_size, model):
 
 
 if __name__ == "__main__":
-    batchsize = 2
+    batchsize = 65536
     # converts qutee's xml file to simulation classes
     mj_model = mujoco.MjModel.from_xml_path('qutee.xml')
+
+    #options = mujoco.MjOptions()
+    #options.solver = 1 
+
+
     mj_data = mujoco.MjData(mj_model)
     mjx_model = mjx.put_model(mj_model)
     mjx_data = mjx.put_data(mj_model, mj_data)
