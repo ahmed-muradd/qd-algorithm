@@ -1,3 +1,5 @@
+## Start developing
+### venv
 Create a virtual enviroment and source it:
 
 using bash shell (linux, macos, wsl):
@@ -12,6 +14,7 @@ python3 -m venv .venv
 .venv\Scripts\activate
 ```
 
+### install depenedencies
 
 Then install dependency packages with pip:
 
@@ -27,3 +30,12 @@ pip freeze > requirements.txt
 
 
 Result files from qdpy is excluded in this git repo, they get created by running qdpy_package/qdpy_example.py
+
+
+## Using GPU acceleration
+
+To use JAX on Nvidia GPU:
+```sh
+pip install -U "jax[cuda12]"
+```
+[read more](https://jax.readthedocs.io/en/latest/installation.html#installation)
