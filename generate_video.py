@@ -51,7 +51,7 @@ def generate_video(parameters, duration=10, framerate=60):
             pixels = renderer.render()
             frames.append(pixels)
 
-    mediapy.write_video("qutee.mp4", frames, fps=framerate)
+    mediapy.write_video("output/qutee.mp4", frames, fps=framerate)
 
     renderer.close()
     print("Video generated!")
@@ -61,9 +61,9 @@ def generate_video(parameters, duration=10, framerate=60):
 if __name__ == '__main__':
     # paste the parameters from the pickle file into the save_video function
     #list of 48 zeroes
-    parameters = [0.0]*48
-    # every 4.th element is the offset and should be 0.5
-    for i in range(3, 48, 4):
+    parameters = [0.0]*36
+    # every 3.th element is the offset and should be 0.5
+    for i in range(2, 36, 3):
         parameters[i] = 0.5
 
 

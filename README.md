@@ -29,7 +29,8 @@ pip freeze > requirements.txt
 ```
 
 
-Result files from qdpy is excluded in this git repo, they get created by running qdpy_package/qdpy_example.py
+Result files from qdpy is put into output folder. The output folder is ignored by git.
+Result files from QDAX (not used for now) is put into logs folder. The logs folder is ignored by git.
 
 
 ## Using GPU acceleration

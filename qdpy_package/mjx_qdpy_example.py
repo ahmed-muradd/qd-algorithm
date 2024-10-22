@@ -44,8 +44,6 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from helper_functions import *
 from generate_video import generate_video
 
-# jax.config.update('jax_platform_name', "cpu")
-print(jax.devices())
 
 
 def setup_sim():
@@ -166,6 +164,9 @@ def create_rand_batch(batch_size, model):
 
 
 if __name__ == "__main__":
+    # jax.config.update('jax_platform_name', "cpu")
+    print(jax.devices())
+
     mjx_data, fitness, features = eval_batch_fn()
 
     # best generate video of performing controller

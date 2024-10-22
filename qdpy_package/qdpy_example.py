@@ -45,8 +45,13 @@ from mjx_qdpy_example import eval_batch_fn
 
 model = mujoco.MjModel.from_xml_path('qutee.xml')
 data = mujoco.MjData(model)
+output_path = "output"
 
 duration = 10   # (seconds)
+
+# Check if the logs folder exists, if not, create it
+if not os.path.exists(output_path):
+    os.makedirs(output_path)
 
 
 def eval_fn(parameters):
@@ -122,12 +127,11 @@ def eval_fn(parameters):
 if __name__ == "__main__":
     # Create container and algorithm. Here we use MAP-Elites, by illuminating a Grid container by evolution.
     grid = containers.Grid(shape=(5,5,5), max_items_per_bin=1, fitness_domain=((0, 0.6),), features_domain=((0., 0.3), (-2., 2.), (-3., 3.)))
-    algo = algorithms.RandomSearchMutPolyBounded(grid, budget=512, batch_size=128,
-
+    algo = algorithms.RandomSearchMutPolyBounded(grid, budget=20, batch_size=10,
             dimension=36, optimisation_task="maximization")
 
     # Create a logger to pretty-print everything and generate output data files
-    logger = algorithms.TQDMAlgorithmLogger(algo)
+    logger = algorithms.TQDMAlgorithmLogger(algo, log_base_path=output_path)
 
     # Run illumination process !
     # If on mac os or linux, use "multiprocessing" instead of "none" to enable parallelism on cpu.
@@ -136,13 +140,14 @@ if __name__ == "__main__":
         best = algo.optimise(eval_fn, batch_mode=False)
     else:
         with ParallelismManager("multiprocessing") as pMgr:
-            best = algo.optimise(eval_batch_fn, executor = pMgr.executor, batch_mode=True, send_several_suggestions_to_fn=True, max_nb_suggestions_per_call=128) # Disable batch_mode (steady-state mode) to ask/tell new individuals without waiting the completion of each batch
+            # best = algo.optimise(eval_batch_fn, executor = pMgr.executor, batch_mode=True, send_several_suggestions_to_fn=True, max_nb_suggestions_per_call=128) # Disable batch_mode (steady-state mode) to ask/tell new individuals without waiting the completion of each batch
+            best = algo.optimise(eval_fn, executor = pMgr.executor) # Disable batch_mode (steady-state mode) to ask/tell new individuals without waiting the completion of each batch
 
     # Print results info
     print("\n" + algo.summary())
 
     # Plot the results
-    plots.default_plots_grid(logger)
+    plots.default_plots_grid(logger, output_dir=output_path)
 
     print("\nAll results are available in the '%s' pickle file." % logger.final_filename)
 

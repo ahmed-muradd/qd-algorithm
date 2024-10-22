@@ -1,7 +1,15 @@
 import pickle
+import os
 # You may want to import your own packages if the pickle file contains custom objects
 
-with open("final.p", "rb") as f:
+pickle_path = "output/final.p"
+
+
+if not os.path.exists(pickle_path):
+    raise FileNotFoundError("The file 'output/final.p' does not exist. Try running qdpy_exmaple.py first")
+
+
+with open(pickle_path, "rb") as f:
     data = pickle.load(f)
 # ``data`` is now a dictionary containing all results, including the final container, all solutions, the algorithm parameters, etc.
 
