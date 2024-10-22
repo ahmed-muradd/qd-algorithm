@@ -40,14 +40,13 @@ import numpy as np
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from helper_functions import quat_to_rpy, tanh_controller
 from generate_video import generate_video
+from mjx_qdpy_example import eval_batch_fn
 
 
 model = mujoco.MjModel.from_xml_path('qutee.xml')
 data = mujoco.MjData(model)
 
 duration = 10   # (seconds)
-framerate = 60  # (Hz)
-
 
 
 def eval_fn(parameters):
@@ -60,6 +59,7 @@ def eval_fn(parameters):
         fitness is the score of the controller
         features is hwo we define the behavior of the robot
     """
+    
 
     parameters = np.reshape(parameters, (12, 3))
 
@@ -122,7 +122,8 @@ def eval_fn(parameters):
 if __name__ == "__main__":
     # Create container and algorithm. Here we use MAP-Elites, by illuminating a Grid container by evolution.
     grid = containers.Grid(shape=(5,5,5), max_items_per_bin=1, fitness_domain=((0, 0.6),), features_domain=((0., 0.3), (-2., 2.), (-3., 3.)))
-    algo = algorithms.RandomSearchMutPolyBounded(grid, budget=100, batch_size=100,
+    algo = algorithms.RandomSearchMutPolyBounded(grid, budget=512, batch_size=128,
+
             dimension=36, optimisation_task="maximization")
 
     # Create a logger to pretty-print everything and generate output data files
@@ -135,7 +136,7 @@ if __name__ == "__main__":
         best = algo.optimise(eval_fn, batch_mode=False)
     else:
         with ParallelismManager("multiprocessing") as pMgr:
-            best = algo.optimise(eval_fn, executor = pMgr.executor, batch_mode=False) # Disable batch_mode (steady-state mode) to ask/tell new individuals without waiting the completion of each batch
+            best = algo.optimise(eval_batch_fn, executor = pMgr.executor, batch_mode=True, send_several_suggestions_to_fn=True, max_nb_suggestions_per_call=128) # Disable batch_mode (steady-state mode) to ask/tell new individuals without waiting the completion of each batch
 
     # Print results info
     print("\n" + algo.summary())
