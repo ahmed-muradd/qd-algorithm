@@ -118,7 +118,9 @@ def eval_fn(parameters):
     # Compute the features
     # features = (x,y,z)
     # features = (roll, pitch, yaw)
-    features = (average_roll, average_pitch, average_yaw)
+    # features = (average_roll, average_pitch, average_yaw)
+
+    features = (x, y)
 
     return (fitness,), features
 
@@ -126,8 +128,8 @@ def eval_fn(parameters):
 
 if __name__ == "__main__":
     # Create container and algorithm. Here we use MAP-Elites, by illuminating a Grid container by evolution.
-    grid = containers.Grid(shape=(5,5,5), max_items_per_bin=1, fitness_domain=((0, 0.6),), features_domain=((0., 0.3), (-2., 2.), (-3., 3.)))
-    algo = algorithms.RandomSearchMutPolyBounded(grid, budget=20, batch_size=10,
+    grid = containers.Grid(shape=(50,50), max_items_per_bin=1, fitness_domain=((0., 50.),), features_domain=((-7., 7.), (-7., 7.)))
+    algo = algorithms.RandomSearchMutPolyBounded(grid, budget=2000000, batch_size=1000,
             dimension=36, optimisation_task="maximization")
 
     # Create a logger to pretty-print everything and generate output data files

@@ -1,6 +1,7 @@
-import pickle
-import os
-# You may want to import your own packages if the pickle file contains custom objects
+import pickle, os, sys
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from generate_video import generate_video
 
 pickle_path = "output/final.p"
 
@@ -19,8 +20,9 @@ print(grid.best.fitness)
 print(grid.best.features)
 
 
-grid_position = (4, 4, 4)
+grid_position = (4, 4)
 print(f"\n\n----- print the individual in grid postion: {grid_position} -----")
 print(grid.features[grid_position])
 print(grid.solutions[grid_position])
 
+generate_video(grid.best, 10)
