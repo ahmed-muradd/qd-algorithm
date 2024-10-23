@@ -29,6 +29,12 @@ def generate_video(parameters, duration=10, framerate=60):
     scene_option = mujoco.MjvOption()
     scene_option.flags[mujoco.mjtVisFlag.mjVIS_JOINT] = True
 
+    # Create and initialize the camera
+    camera = mujoco.MjvCamera()
+    # Set the camera to track the robot's base link
+    camera.trackbodyid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, 'base_link')
+    
+    camera.type = mujoco.mjtCamera.mjCAMERA_TRACKING  # Set camera type to tracking
 
     frames = []
     mujoco.mj_resetData(model, data)
@@ -47,7 +53,7 @@ def generate_video(parameters, duration=10, framerate=60):
 
         # creates a video
         if len(frames) < data.time * framerate:
-            renderer.update_scene(data, scene_option=scene_option)
+            renderer.update_scene(data,camera=camera, scene_option=scene_option)
             pixels = renderer.render()
             frames.append(pixels)
 
