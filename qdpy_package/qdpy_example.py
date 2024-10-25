@@ -75,6 +75,9 @@ def eval_fn(parameters):
     initial_position = np.copy(data.xpos[body_index])
     rotation_matrix = data.xmat[body_index].reshape(3, 3)
 
+    #initial roll pitch and yaw
+    quaternion = data.xquat[body_index]
+    i_rpy = quat_to_rpy(quaternion)
 
     rpy_values = []
     while data.time < duration:
@@ -87,17 +90,13 @@ def eval_fn(parameters):
         data.ctrl = controllers
         mujoco.mj_step(model, data)
 
-        # Get the roll, pitch, and yaw
+        # Get the roll, pitch, and yaw SE
         quaternion = data.xquat[body_index]
-        rpy_values.append(quat_to_rpy(quaternion))
+        rpy_values.append((quat_to_rpy(quaternion)-i_rpy)**2)
 
-    # get average roll, pitch, yaw
+    # get MSE of roll, pitch, yaw
     rpy_values = np.array(rpy_values)
-    average_roll, average_pitch, average_yaw = np.mean(rpy_values, axis=0)
-
-    # Get the roll, pitch, and yaw of the robot in the end position
-    quaternion = data.xquat[body_index]
-    roll, pitch, yaw = quat_to_rpy(quaternion)
+    roll_error, pitch_error, yaw_error = np.mean(rpy_values, axis=0)
 
     # get the end position of the robot
     end_position = np.copy(data.xpos[body_index])
@@ -119,8 +118,8 @@ def eval_fn(parameters):
     # features = (x,y,z)
     # features = (roll, pitch, yaw)
     # features = (average_roll, average_pitch, average_yaw)
-
-    features = (x, y)
+    features = (roll_error, pitch_error, yaw_error)
+    #features = (x, y)
 
     return (fitness,), features
 
