@@ -119,7 +119,7 @@ def eval_fn(parameters):
     # features = (roll, pitch, yaw)
     # features = (average_roll, average_pitch, average_yaw)
     features = (roll_error, pitch_error, yaw_error)
-    #features = (x, y)
+    # features = (x, y)
 
     return (fitness,), features
 
@@ -127,8 +127,8 @@ def eval_fn(parameters):
 
 if __name__ == "__main__":
     # Create container and algorithm. Here we use MAP-Elites, by illuminating a Grid container by evolution.
-    grid = containers.Grid(shape=(50,50), max_items_per_bin=1, fitness_domain=((0., 50.),), features_domain=((-7., 7.), (-7., 7.)))
-    algo = algorithms.RandomSearchMutPolyBounded(grid, budget=2000000, batch_size=1000,
+    grid = containers.Grid(shape=(10,50,50), max_items_per_bin=1, fitness_domain=((0., 100.),), features_domain=((0., 12.), (0., 12.), (0., 12.)))
+    algo = algorithms.RandomSearchMutPolyBounded(grid, budget=40, batch_size=128,
             dimension=36, optimisation_task="maximization")
 
     # Create a logger to pretty-print everything and generate output data files
@@ -148,7 +148,6 @@ if __name__ == "__main__":
     print("\n" + algo.summary())
 
     # Plot the results
-    print(best.fitness.values[0])
     plots.default_plots_grid(logger, output_dir=output_path, fitness_domain=((0., best.fitness.values[0]),))
 
     print("\nAll results are available in the '%s' pickle file." % logger.final_filename)
