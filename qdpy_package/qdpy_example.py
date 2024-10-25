@@ -148,7 +148,8 @@ if __name__ == "__main__":
     print("\n" + algo.summary())
 
     # Plot the results
-    plots.default_plots_grid(logger, output_dir=output_path)
+    print(best.fitness.values[0])
+    plots.default_plots_grid(logger, output_dir=output_path, fitness_domain=((0., best.fitness.values[0]),))
 
     print("\nAll results are available in the '%s' pickle file." % logger.final_filename)
 
