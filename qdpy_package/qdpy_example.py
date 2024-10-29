@@ -96,9 +96,10 @@ def eval_fn(parameters):
         rpy_values.append(this_rpy-prev_rpy)
         prev_rpy = this_rpy
 
-    # get MSE of roll, pitch, yaw
+    # get SE of roll, pitch, yaw
     rpy_values = np.array(rpy_values)
-    roll_error, pitch_error, yaw_error = np.mean(rpy_values, axis=0)
+    rpy_values = np.square(rpy_values)
+    roll_error, pitch_error, yaw_error = np.round((np.mean(rpy_values, axis=0)), decimals=3)
 
     # get the end position of the robot
     end_position = np.copy(data.xpos[body_index])
@@ -133,7 +134,7 @@ if __name__ == "__main__":
     # ask for number of simulations
     simulations = int(input("How many simulations do you want to run?: "))
     # Create container and algorithm. Here we use MAP-Elites, by illuminating a Grid container by evolution.
-    grid = containers.Grid(shape=(10,50,50), max_items_per_bin=1, fitness_domain=((0., 100.),), features_domain=((0., 12.), (0., 12.), (0., 12.)))
+    grid = containers.Grid(shape=(10,50,50), max_items_per_bin=1, fitness_domain=((0., 100.),), features_domain=((0., 0.5), (0., .5), (0., .5)))
     algo = algorithms.RandomSearchMutPolyBounded(grid, budget=simulations, batch_size=128,
             dimension=36, optimisation_task="maximization")
 

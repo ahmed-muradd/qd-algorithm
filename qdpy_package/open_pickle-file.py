@@ -5,7 +5,7 @@ from generate_video import generate_video
 
 pickle_path = "output/final.p"
 # generate vide of the nth best individual, ordered by fitness
-generate_video_of_nth_best = 1
+generate_video_of_nth_best = 0
 
 if not os.path.exists(pickle_path):
     raise FileNotFoundError("The file 'output/final.p' does not exist. Try running qdpy_exmaple.py first")
@@ -45,12 +45,12 @@ if sorted_fitness[generate_video_of_nth_best][0] == 0:
     sys.exit(0)
 
 
-grid_position = sorted_fitness[generate_video_of_nth_best][0]
+grid_position = sorted_fitness[generate_video_of_nth_best][1]
 print(f"\n----- print the individual in grid postion: {grid_position}, with fitness {sorted_fitness[generate_video_of_nth_best][0]} -----")
 print(grid.features[grid_position])
 print(grid.solutions[grid_position])
 
-generate_video(grid.solutions[2,7,37], 10)
+generate_video(grid.solutions[1, 0, 6], 10)
 
 # første er y akse
 # andre er x akse
