@@ -3,7 +3,7 @@ import pickle, os, sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from generate_video import generate_video
 
-pickle_path = "output3/final.p"
+pickle_path = "output/final.p"
 # generate vide of the nth best individual, ordered by fitness
 generate_video_of_nth_best = 1
 
@@ -26,7 +26,11 @@ print("the best individual has a fitness of ", grid.best.fitness)
 print("The batch size was ", data["batch_size"])
 
 
-
+# can be used for testing
+populated_positions = [s for s in grid.fitness if len(grid.fitness[s]) != 0]
+print("Populated grid positions:")
+for position in populated_positions:
+    print(position)
 
 
 
@@ -46,4 +50,9 @@ print(f"\n----- print the individual in grid postion: {grid_position}, with fitn
 print(grid.features[grid_position])
 print(grid.solutions[grid_position])
 
-generate_video(grid.solutions[grid_position], 10)
+generate_video(grid.solutions[2,7,37], 10)
+
+# første er y akse
+# andre er x akse
+# tredje er z akse
+
