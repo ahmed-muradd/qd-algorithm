@@ -3,7 +3,7 @@ import pickle, os, sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from generate_video import generate_video
 
-pickle_path = "output3/final.p"
+pickle_path = "output/final.p"
 # generate vide of the nth best individual, ordered by fitness
 generate_video_of_nth_best = 1
 
@@ -37,11 +37,11 @@ sorted_fitness = sorted(
 )
 
 if sorted_fitness[generate_video_of_nth_best][0] == 0:
-    print("The {generate_video_of_nth_best}. best individual dont exist")
+    print(f"The {generate_video_of_nth_best}. best individual dont exist")
     sys.exit(0)
 
 
-grid_position = sorted_fitness[generate_video_of_nth_best][1]
+grid_position = sorted_fitness[generate_video_of_nth_best][0]
 print(f"\n----- print the individual in grid postion: {grid_position}, with fitness {sorted_fitness[generate_video_of_nth_best][0]} -----")
 print(grid.features[grid_position])
 print(grid.solutions[grid_position])

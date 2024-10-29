@@ -77,7 +77,7 @@ def eval_fn(parameters):
 
     #initial roll pitch and yaw
     quaternion = data.xquat[body_index]
-    i_rpy = quat_to_rpy(quaternion)
+    prev_rpy = quat_to_rpy(quaternion)
 
     rpy_values = []
     while data.time < duration:
@@ -92,11 +92,12 @@ def eval_fn(parameters):
 
         # Get the roll, pitch, and yaw SE
         quaternion = data.xquat[body_index]
-        rpy_values.append(quat_to_rpy(quaternion)-i_rpy)
+        this_rpy = quat_to_rpy(quaternion)
+        rpy_values.append(this_rpy-prev_rpy)
+        prev_rpy = this_rpy
 
     # get MSE of roll, pitch, yaw
     rpy_values = np.array(rpy_values)
-    rpy_values = np.square(rpy_values)
     roll_error, pitch_error, yaw_error = np.mean(rpy_values, axis=0)
 
     # get the end position of the robot
@@ -120,6 +121,7 @@ def eval_fn(parameters):
     # features = (roll, pitch, yaw)
     # features = (average_roll, average_pitch, average_yaw)
     features = (roll_error, pitch_error, yaw_error)
+    print(features)
     # features = (x, y)
 
     return (fitness,), features
