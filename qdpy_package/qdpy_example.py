@@ -54,6 +54,22 @@ if not os.path.exists(output_path):
     os.makedirs(output_path)
 
 
+def is_leg_in_contact(data, leg_geom_name="leg_0_3_geom"):
+    # Get the geom IDs for the leg and ground
+    ground_geom_id = mujoco.mj_name2id(data.model, mujoco.mjtObj.mjOBJ_GEOM, "ground")
+    leg_geom_id = mujoco.mj_name2id(data.model, mujoco.mjtObj.mjOBJ_GEOM, leg_geom_name)
+
+    # Check each contact
+    for contact in data.contact[:data.ncon]:
+        # Check if the contact involves the ground and the specified leg
+        if (contact.geom1 == ground_geom_id and contact.geom2 == leg_geom_id) or \
+           (contact.geom1 == leg_geom_id and contact.geom2 == ground_geom_id):
+            return True  # Contact found
+    
+    return False  # No contact
+
+
+
 def eval_fn(parameters):
     """
     input:
@@ -78,8 +94,12 @@ def eval_fn(parameters):
     #initial roll pitch and yaw
     quaternion = data.xquat[body_index]
     prev_rpy = quat_to_rpy(quaternion)
-
     rpy_values = []
+
+    # legs to check for contact
+    legs = ["leg_0_3_geom", "leg_2_3_geom", "leg_3_3_geom", "leg_5_3_geom"]
+    contact_times = {leg: 0.0 for leg in legs}
+
     while data.time < duration:
         controllers = []
         
@@ -89,6 +109,11 @@ def eval_fn(parameters):
 
         data.ctrl = controllers
         mujoco.mj_step(model, data)
+
+        # check if each leg is in contact with the ground
+        for leg in legs:
+            if is_leg_in_contact(data, leg):
+                contact_times[leg] += 1 / 500
 
         # Get the roll, pitch, and yaw SE
         quaternion = data.xquat[body_index]
@@ -121,9 +146,8 @@ def eval_fn(parameters):
     # features = (x,y,z)
     # features = (roll, pitch, yaw)
     # features = (average_roll, average_pitch, average_yaw)
-    features = (roll_error, pitch_error, yaw_error)
-    print(features)
-    # features = (x, y)
+    # features = (roll_error, pitch_error, yaw_error)
+    features = tuple(contact_times.values())
 
     return (fitness,), features
 
@@ -134,7 +158,7 @@ if __name__ == "__main__":
     # ask for number of simulations
     simulations = int(input("How many simulations do you want to run?: "))
     # Create container and algorithm. Here we use MAP-Elites, by illuminating a Grid container by evolution.
-    grid = containers.Grid(shape=(10,50,50), max_items_per_bin=1, fitness_domain=((0., 100.),), features_domain=((0., 0.5), (0., 0.5), (0., 0.5)))
+    grid = containers.Grid(shape=(10,10,10,10), max_items_per_bin=1, fitness_domain=((0., 100.),), features_domain=((0., 10.), (0., 10.), (0., 10.), (0., 10.)))
     algo = algorithms.RandomSearchMutPolyBounded(grid, budget=simulations, batch_size=128,
             dimension=36, optimisation_task="maximization")
 

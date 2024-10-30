@@ -52,7 +52,7 @@
                     <geom type="capsule" fromto="0 0 0 0.081 0 0" size="0.013" material="Blue"/>
                     <body name="leg_0_3" pos="0.081 0 0.">
                         <joint class="wrist" type="hinge" axis="0 -1 0" range="-0.7854 0.7854" damping="0.0" name="leg_0_wrist" />
-                        <geom type="capsule" fromto="0 0 0 0 0 -0.09" size="0.013" material="Red"/>
+                        <geom name="leg_0_3_geom" type="capsule" fromto="0 0 0 0 0 -0.09" size="0.013" material="Red"/>
 <!--                        <body name="foot_0" pos="0 0 -0.11095">-->
 <!--                            <geom type="sphere" size="0.025" material="Green"/>-->
 <!--                        </body>-->
@@ -69,7 +69,7 @@
                     <geom type="capsule" fromto="0 0 0 0.081 0 0" size="0.013" material="Blue"/>
                     <body name="leg_2_3" pos="0.081 0 0.">
                         <joint class="wrist" type="hinge" axis="0 -1 0" range="-0.7854 0.7854" damping="0.0" name="leg_2_wrist"/>
-                        <geom type="capsule" fromto="0 0 0 0 0 -0.09" size="0.013" material="Red"/>
+                        <geom name="leg_2_3_geom" type="capsule" fromto="0 0 0 0 0 -0.09" size="0.013" material="Red"/>
 <!--                        <body name="foot_2" pos="0 0 -0.11095">-->
 <!--                            <geom type="sphere" size="0.025" material="Green"/>-->
 <!--                        </body>-->
@@ -86,7 +86,7 @@
                     <geom type="capsule" fromto="0 0 0 0.081 0 0" size="0.013" material="Blue"/>
                     <body name="leg_3_3" pos="0.081 0 0.">
                         <joint class="wrist" type="hinge" axis="0 -1 0" range="-0.7854 0.7854" damping="0.0" name="leg_3_wrist"/>
-                        <geom type="capsule" fromto="0 0 0 0 0 -0.09" size="0.013" material="Red"/>
+                        <geom name="leg_3_3_geom" type="capsule" fromto="0 0 0 0 0 -0.09" size="0.013" material="Red"/>
 <!--                        <body name="foot_3" pos="0 0 -0.11095">-->
 <!--                            <geom type="sphere" size="0.025" material="Green"/>-->
 <!--                        </body>-->
@@ -103,7 +103,7 @@
                     <geom type="capsule" fromto="0 0 0 0.081 0 0" size="0.013" material="Blue"/>
                     <body name="leg_5_3" pos="0.081 0 0.">
                         <joint class="wrist" type="hinge" axis="0 -1 0" range="-0.7854 0.7854" damping="0.0" name="leg_5_wrist"/>
-                        <geom type="capsule" fromto="0 0 0 0 0 -0.09" size="0.013" material="Red"/>
+                        <geom name="leg_5_3_geom" type="capsule" fromto="0 0 0 0 0 -0.09" size="0.013" material="Red"/>
 <!--                        <body name="foot_5" pos="0 0 -0.11095">-->
 <!--                            <geom type="sphere" size="0.025" material="Green"/>-->
 <!--                        </body>-->
