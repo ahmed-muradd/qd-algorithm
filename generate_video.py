@@ -12,6 +12,23 @@ model = mujoco.MjModel.from_xml_path('qutee.xml')
 data = mujoco.MjData(model)
 
 
+
+def is_leg_in_contact(data, leg_geom_name="leg_0_3_geom"):
+    # Get the geom IDs for the leg and ground
+    ground_geom_id = mujoco.mj_name2id(data.model, mujoco.mjtObj.mjOBJ_GEOM, "ground")
+    leg_geom_id = mujoco.mj_name2id(data.model, mujoco.mjtObj.mjOBJ_GEOM, leg_geom_name)
+
+    # Check each contact
+    for contact in data.contact[:data.ncon]:
+        # Check if the contact involves the ground and the specified leg
+        if (contact.geom1 == ground_geom_id and contact.geom2 == leg_geom_id) or \
+           (contact.geom1 == leg_geom_id and contact.geom2 == ground_geom_id):
+            return True  # Contact found
+    
+    return False  # No contact
+
+
+
 def generate_video(parameters, duration=10, framerate=60):
     '''
     input:
@@ -38,7 +55,9 @@ def generate_video(parameters, duration=10, framerate=60):
 
     frames = []
     mujoco.mj_resetData(model, data)
-    
+
+    legs = ["leg_0_3_geom", "leg_2_3_geom", "leg_3_3_geom", "leg_5_3_geom"]
+    contact_times = {leg: 0.0 for leg in legs}
 
     # run each frame on simulation
     while data.time < duration:
@@ -51,11 +70,22 @@ def generate_video(parameters, duration=10, framerate=60):
         data.ctrl = controllers
         mujoco.mj_step(model, data)
 
+        # check if each leg is in contact with the ground
+        for leg in legs:
+            if is_leg_in_contact(data, leg):
+                contact_times[leg] += 1 / 500
+
         # creates a video
         if len(frames) < data.time * framerate:
             renderer.update_scene(data,camera=camera, scene_option=scene_option)
             pixels = renderer.render()
             frames.append(pixels)
+        
+
+    # Print total contact time for each leg
+    # print("Total contact time for each leg:")
+    # for leg, time in contact_times.items():
+    #     print(f"{leg}: {time:.2f} seconds")
 
     mediapy.write_video("output/qutee.mp4", frames, fps=framerate)
 
@@ -73,8 +103,7 @@ if __name__ == '__main__':
         parameters[i] = 0.5
 
 
-    parameters[5] = 0.00001
-    parameters[6] = 1
-    parameters[8] = 0.5
+    parameters[3] = 0.00000
+    parameters[4] = 0
 
     generate_video(parameters, 10, 60)
