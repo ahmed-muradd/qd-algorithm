@@ -148,8 +148,6 @@ def eval_fn(parameters):
     # features = (average_roll, average_pitch, average_yaw)
     # features = (roll_error, pitch_error, yaw_error)
     features = tuple(contact_times.values())
-    print(features)
-    # features = (x, y)
 
     return (fitness,), features
 
@@ -160,7 +158,7 @@ if __name__ == "__main__":
     # ask for number of simulations
     simulations = int(input("How many simulations do you want to run?: "))
     # Create container and algorithm. Here we use MAP-Elites, by illuminating a Grid container by evolution.
-    grid = containers.Grid(shape=(10,10,50,50), max_items_per_bin=1, fitness_domain=((0., 100.),), features_domain=((0., 10.), (0., 10.), (0., 10.), (0., 10.)))
+    grid = containers.Grid(shape=(10,10,10,10), max_items_per_bin=1, fitness_domain=((0., 100.),), features_domain=((0., 10.), (0., 10.), (0., 10.), (0., 10.)))
     algo = algorithms.RandomSearchMutPolyBounded(grid, budget=simulations, batch_size=128,
             dimension=36, optimisation_task="maximization")
 
