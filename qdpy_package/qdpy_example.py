@@ -152,7 +152,7 @@ if __name__ == "__main__":
     # ask for number of simulations
     simulations = int(input("How many simulations do you want to run?: "))
     # Create container and algorithm. Here we use MAP-Elites, by illuminating a Grid container by evolution.
-    grid = containers.Grid(shape=(20,20,20), max_items_per_bin=1, fitness_domain=((0., 100.),), features_domain=((0., 40.), (0., 40.), (0., 40.)))
+    grid = containers.Grid(shape=(10,10,10), max_items_per_bin=1, fitness_domain=((0., 100.),), features_domain=((0., 10.), (0., 10.), (0., 10.)))
     algo = algorithms.RandomSearchMutPolyBounded(grid, budget=simulations, batch_size=128,
             dimension=36, optimisation_task="maximization")
 
