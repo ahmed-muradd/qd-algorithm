@@ -6,7 +6,7 @@ import mujoco
 import mujoco.viewer
 
 
-output_path = "output2"
+output_path = "output"
 
 # import helper functions
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -52,27 +52,40 @@ def fitness(controller: list, duration: int = 10) -> float:
     
 
 def simulate_reality(grid: Grid) -> None:
-    zoza = grid.quality_array[... ,0]
     # get the grid and its controllers
     controllers: dict = grid.solutions
     # reset grid to prepare for new values
     best = grid.best_fitness
     # set fitness for each controller in grid based on new simulated reality
+    quality_copy = np.copy(grid.quality_array)
+    
     counter = 1
     for index, controller in controllers.items():
         if len(controller):
             controller = controller[0]
             ft = fitness(controller)
-            grid.quality_array[index] = [ft]
+            error = grid.quality_array[index][0]-ft
+            
+            if error < 0:
+                error = 0.0
 
+            quality_copy[index] = [error]
+            grid.quality_array[index] = [ft]
             print(f"\r{counter*100/grid.filled_bins:.2f}%", end='')
             counter+=1
-    print(np.allclose(zoza, grid.quality_array[... ,0], atol=1e-5))
+        
+
     # plot the grid subplots for reality testing
     path: str = output_path + "/realityPerformance.pdf"
-    nparray = np.array(controllers)
     plots.plotGridSubplots(grid.quality_array[... ,0], path, plt.get_cmap("inferno"), 
                            grid.features_domain, fitnessBounds=(0., best[0]), nbTicks=None)
+    
+    # finding the highest error
+    flat_array = quality_copy.flatten()
+    max_value = np.max(flat_array)
+    path = output_path + "/realityError.pdf"
+    plots.plotGridSubplots(quality_copy[..., 0], path, plt.get_cmap("inferno"), 
+                           grid.features_domain, fitnessBounds=(0., max_value), nbTicks=None)
 
 if __name__=="__main__":
     print("Evaluating grid...")
