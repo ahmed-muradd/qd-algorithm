@@ -26,14 +26,12 @@ example from : https://gitlab.com/leo.cazenille/qdpy/-/blob/master/examples/cust
 
 from qdpy import algorithms, containers, plots
 from qdpy.base import ParallelismManager
-import math, random, time, sys, os
+import sys, os
 import numpy as np
 
 
 import mujoco
 import mujoco.viewer
-import mediapy
-from PIL import Image
 import numpy as np
 
 # import helper functions
