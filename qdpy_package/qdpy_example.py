@@ -26,15 +26,8 @@ example from : https://gitlab.com/leo.cazenille/qdpy/-/blob/master/examples/cust
 
 from qdpy import algorithms, containers, plots
 from qdpy.base import ParallelismManager
-import math, random, time, sys, os
-import numpy as np
-
-
-import mujoco
-import mujoco.viewer
-import mediapy
-from PIL import Image
-import numpy as np
+import sys, os, mpmath, numpy as np
+import mujoco, mujoco.viewer
 
 # import helper functions
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -46,7 +39,6 @@ from mjx_qdpy_example import eval_batch_fn
 model = mujoco.MjModel.from_xml_path('qutee.xml')
 data = mujoco.MjData(model)
 output_path = "output"
-
 duration = 10   # (seconds)
 
 # Check if the logs folder exists, if not, create it
@@ -86,6 +78,8 @@ def eval_fn(parameters):
 
     # simulation part
     mujoco.mj_resetData(model, data)
+    mujoco.mj_step(model, data) # step to get initial position and rotation
+
     #start position of robot
     body_index = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "base_link")
     initial_position = np.copy(data.xpos[body_index])
@@ -110,24 +104,21 @@ def eval_fn(parameters):
         data.ctrl = controllers
         mujoco.mj_step(model, data)
 
-        # check if each leg is in contact with the ground
-        for leg in legs:
-            if is_leg_in_contact(data, leg):
-                contact_times[leg] += 1 / 500
+        # # check if each leg is in contact with the ground
+        # for leg in legs:
+        #     if is_leg_in_contact(data, leg):
+        #         contact_times[leg] += 1 / 500
 
-        # Get the roll, pitch, and yaw SE
+        # Get the roll, pitch, and yaw SE with mpmath precision
         quaternion = data.xquat[body_index]
-        this_rpy = quat_to_rpy(quaternion)
-        rpy_values.append(this_rpy-prev_rpy)
+        this_rpy = quat_to_rpy(quaternion, prev_rpy)  # Pass prev_rpy for continuity
+        rpy_values.append(this_rpy - prev_rpy)
         prev_rpy = this_rpy
 
-    # get SE of roll, pitch, yaw
-    rpy_values = np.array(rpy_values)
-    rpy_values = np.square(rpy_values)
-    roll_error, pitch_error, yaw_error = np.round((np.mean(rpy_values, axis=0)), decimals=3)
 
-    # get the end position of the robot
-    end_position = np.copy(data.xpos[body_index])
+    # Get SE of roll, pitch, yaw using mpmath operations
+    rpy_values = [mpmath.fsum([mpmath.power(val[i], 2) for val in rpy_values]) for i in range(3)]
+    roll_error, pitch_error, yaw_error = [float(err)*100 for err in rpy_values]
 
     # robot's z rotation
     body_z_axis_world = rotation_matrix[:, 2]
@@ -135,7 +126,10 @@ def eval_fn(parameters):
     z_dot_product = np.dot(body_z_axis_world, np.array([0, 0, 1]))
 
 
-    #calculating fitness, 0 if robot is upside down
+
+    # get the end position of the robot
+    end_position = np.copy(data.xpos[body_index])
+    # calculating fitness, 0 if robot is upside down
     fitness = 0.0
     x, y, z = end_position - initial_position
     if z_dot_product > 0:
@@ -146,8 +140,8 @@ def eval_fn(parameters):
     # features = (x,y,z)
     # features = (roll, pitch, yaw)
     # features = (average_roll, average_pitch, average_yaw)
-    # features = (roll_error, pitch_error, yaw_error)
-    features = tuple(contact_times.values())
+    features = (roll_error, pitch_error, yaw_error)
+    # features = tuple(contact_times.values())
 
     return (fitness,), features
 
@@ -158,7 +152,7 @@ if __name__ == "__main__":
     # ask for number of simulations
     simulations = int(input("How many simulations do you want to run?: "))
     # Create container and algorithm. Here we use MAP-Elites, by illuminating a Grid container by evolution.
-    grid = containers.Grid(shape=(10,10,10,10), max_items_per_bin=1, fitness_domain=((0., 100.),), features_domain=((0., 10.), (0., 10.), (0., 10.), (0., 10.)))
+    grid = containers.Grid(shape=(20,20,20), max_items_per_bin=1, fitness_domain=((0., 100.),), features_domain=((0., 40.), (0., 40.), (0., 40.)))
     algo = algorithms.RandomSearchMutPolyBounded(grid, budget=simulations, batch_size=128,
             dimension=36, optimisation_task="maximization")
 
