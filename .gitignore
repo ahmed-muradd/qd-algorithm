@@ -3,7 +3,7 @@
 __pycache__
 
 # qdpy output files
-output
+output*
 MUJOCO_LOG.TXT
 
 

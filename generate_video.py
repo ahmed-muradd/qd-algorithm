@@ -1,10 +1,7 @@
-import numpy as np, os, mpmath
+import numpy as np, os, mediapy
 import mujoco
 import mujoco.viewer
-import mediapy
-import numpy as np
-
-from helper_functions import quat_to_rpy, tanh_controller
+from helper_functions import tanh_controller
 
 model = mujoco.MjModel.from_xml_path('qutee.xml')
 output_path = "output"
@@ -26,7 +23,7 @@ def is_leg_in_contact(data, leg_geom_name="leg_0_3_geom"):
 
 
 
-def generate_video(parameters, duration=10, framerate=60):
+def generate_video(parameters, duration=10, framerate=60, output_path=output_path):
     '''
     input:
     controllers is a 12X3 Matrix
@@ -73,7 +70,7 @@ def generate_video(parameters, duration=10, framerate=60):
             frames.append(pixels)
         
 
-    mediapy.write_video("output/qutee.mp4", frames, fps=framerate)
+    mediapy.write_video(output_path + "/qutee.mp4", frames, fps=framerate)
 
     renderer.close()
     print("Video generated!")

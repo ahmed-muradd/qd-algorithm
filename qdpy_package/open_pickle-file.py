@@ -4,16 +4,16 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from generate_video import generate_video
 
 
-pickle_path = "output/final.p"
+output_path = "output4"
 # generate vide of the nth best individual, ordered by fitness
-use_nth_best = False
+use_nth_best = True
 nth_best = 0
 
-if not os.path.exists(pickle_path):
+if not os.path.exists(output_path + "/final.p"):
     raise FileNotFoundError("The file 'output/final.p' does not exist. Try running qdpy_exmaple.py first")
 
 
-with open(pickle_path, "rb") as f:
+with open(output_path + "/final.p", "rb") as f:
     data = pickle.load(f)
 # ``data`` is now a dictionary containing all results, including the final container, all solutions, the algorithm parameters, etc.
 
@@ -45,7 +45,7 @@ if use_nth_best:
     print(f"\n----- print the individual in grid postion: {grid_position}, with fitness {sorted_fitness[nth_best][0]} -----")
     print(grid.features[grid_position])
     print(grid.solutions[grid_position])
-    generate_video(grid.solutions[grid_position], 10)
+    generate_video(grid.solutions[grid_position], 10, output_path=output_path)
 
 else:
     # can be used for testing
@@ -56,7 +56,7 @@ else:
     
     # put in the grid position you want to generate a video of,
     # see terminal output too select from populated_positions
-    generate_video(grid.solutions[16,3,16], 10)
+    generate_video(grid.solutions[0,0,0], 10, output_path=output_path)
 
 # første er y akse
 # andre er x akse

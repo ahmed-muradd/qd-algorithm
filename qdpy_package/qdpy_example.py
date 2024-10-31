@@ -177,4 +177,4 @@ if __name__ == "__main__":
 
     print("\nAll results are available in the '%s' pickle file." % logger.final_filename)
 
-    generate_video(best, duration, framerate=60)
+    generate_video(best, duration, framerate=60, output_path=output_path)

@@ -40,3 +40,15 @@ To use JAX on Nvidia GPU:
 pip install -U "jax[cuda12]"
 ```
 [read more](https://jax.readthedocs.io/en/latest/installation.html#installation)
+
+
+## Running the qd algorithm
+
+be in the root folder of the project and run:
+```sh
+python3 qdpy_package/qdpy_example.py
+```
+
+i am saving different solutions in different output folders, its formatted like this: \<n>output/
+That is what the output_path variable is used for in the qdpy_example.py file.
+These folders are excluded in the git repository, so you will have to create them yourself by running the qdpy_example.py file.

@@ -1,28 +1,22 @@
-import copy
-from qdpy import algorithms, containers, plots, phenotype
-from qdpy.phenotype import Fitness
+from qdpy import plots
 from qdpy.containers import Grid
-from qdpy.base import ParallelismManager
-import sys, os
-import numpy as np
+import sys, os, pickle, numpy as np
 import matplotlib.pyplot as plt
-import pickle
-
-
 import mujoco
 import mujoco.viewer
-import numpy as np
+
+
+output_path = "output2"
 
 # import helper functions
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from helper_functions import tanh_controller
-from generate_video import generate_video
 
 def fitness(controller: list, duration: int = 10) -> float:
 
     controller = np.reshape(controller, (12, 3))
      # simulation part
-    model = mujoco.MjModel.from_xml_path('real_qutee.xml')
+    model = mujoco.MjModel.from_xml_path('alternative_qutee.xml')
     data = mujoco.MjData(model)
     mujoco.mj_resetData(model, data)
 
@@ -54,7 +48,7 @@ def fitness(controller: list, duration: int = 10) -> float:
     if z_dot_product > 0:
         fitness = x**2 + y**2
 
-    return (fitness,)
+    return fitness
     
 
 def simulate_reality(grid: Grid) -> None:
@@ -69,21 +63,22 @@ def simulate_reality(grid: Grid) -> None:
         if len(controller):
             controller = controller[0]
             ft = fitness(controller)
-            controller.fitness = Fitness(values=ft, weights=(1,))
+            grid.quality_array[index] = [ft]
+
             print(f"\r{counter*100/grid.filled_bins:.2f}%", end='')
             counter+=1
     print(np.allclose(zoza, grid.quality_array[... ,0], atol=1e-5))
     # plot the grid subplots for reality testing
-    path: str = "output/realityPerformance.pdf"
+    path: str = output_path + "/realityPerformance.pdf"
+    nparray = np.array(controllers)
     plots.plotGridSubplots(grid.quality_array[... ,0], path, plt.get_cmap("inferno"), 
                            grid.features_domain, fitnessBounds=(0., best[0]), nbTicks=None)
-    
 
 if __name__=="__main__":
     print("Evaluating grid...")
-    pickle_path = "output/final.p"    
+    pickle_path = output_path + "/final.p"
     if not os.path.exists(pickle_path):
-        raise FileNotFoundError("The file 'output/final.p' does not exist. Try running qdpy_exmaple.py first")
+        raise FileNotFoundError(f"The file {pickle_path} does not exist. Try running qdpy_exmaple.py first")
     
     # read from pickle file
     with open(pickle_path, "rb") as f:
