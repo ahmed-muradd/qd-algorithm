@@ -1,30 +1,46 @@
-import numpy as np, math
+#https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
+
+import numpy as np, math, mpmath
 import jax
 from jax import numpy as jp
 
+mpmath.mp.dps = 64 # Set the precision to 64 decimal places
 
-# Function to convert a quaternion to Euler angles (roll, pitch, yaw)
-def quat_to_rpy(quat):
+
+# Function to convert quaternion to continuous Euler angles
+def quat_to_rpy(quat, prev_rpy=None):
     w, x, y, z = quat
     
     # Roll (x-axis rotation)
     sinr_cosp = 2 * (w * x + y * z)
     cosr_cosp = 1 - 2 * (x * x + y * y)
-    roll = np.arctan2(sinr_cosp, cosr_cosp)
+    roll = mpmath.atan2(sinr_cosp, cosr_cosp)
 
     # Pitch (y-axis rotation)
     sinp = 2 * (w * y - z * x)
     if abs(sinp) >= 1:
-        pitch = np.sign(sinp) * np.pi / 2  # Use 90 degrees if out of range
+        pitch = mpmath.sign(sinp) * mpmath.pi / 2
     else:
-        pitch = np.arcsin(sinp)
+        pitch = mpmath.asin(sinp)
 
     # Yaw (z-axis rotation)
     siny_cosp = 2 * (w * z + x * y)
     cosy_cosp = 1 - 2 * (y * y + z * z)
-    yaw = np.arctan2(siny_cosp, cosy_cosp)
+    yaw = mpmath.atan2(siny_cosp, cosy_cosp)
 
-    return np.array([roll, pitch, yaw])
+    # Wrap angles for continuity if previous angles exist
+    current_rpy = mpmath.matrix([roll, pitch, yaw])
+    if prev_rpy is not None:
+        for i in range(3):  # for roll, pitch, yaw
+            diff = current_rpy[i] - prev_rpy[i]
+            if diff > mpmath.pi:
+                current_rpy[i] -= 2 * mpmath.pi
+            elif diff < -mpmath.pi:
+                current_rpy[i] += 2 * mpmath.pi
+    
+    return current_rpy
+
+
 
 def mjx_quat_to_rpy(quat):
     w, x, y, z = quat
