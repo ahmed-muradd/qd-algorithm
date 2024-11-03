@@ -118,7 +118,7 @@ def eval_fn(parameters):
 
     # Get SE of roll, pitch, yaw using mpmath operations
     rpy_values = [mpmath.fsum([mpmath.power(val[i], 2) for val in rpy_values]) for i in range(3)]
-    roll_error, pitch_error, yaw_error = [float(err)*100 for err in rpy_values]
+    roll_error, pitch_error, yaw_error = [float(err)*10 for err in rpy_values]
 
     # robot's z rotation
     body_z_axis_world = rotation_matrix[:, 2]
@@ -152,8 +152,8 @@ if __name__ == "__main__":
     # ask for number of simulations
     simulations = int(input("How many simulations do you want to run?: "))
     # Create container and algorithm. Here we use MAP-Elites, by illuminating a Grid container by evolution.
-    grid = containers.Grid(shape=(10,10,10), max_items_per_bin=1, fitness_domain=((0., 100.),), features_domain=((0., 10.), (0., 10.), (0., 10.)))
-    algo = algorithms.RandomSearchMutPolyBounded(grid, budget=simulations, batch_size=128,
+    grid = containers.Grid(shape=(10,10,10), max_items_per_bin=1, fitness_domain=((0., 100.),), features_domain=((0., 1.), (0., 1.), (0., 1.)))
+    algo = algorithms.RandomSearchMutPolyBounded(grid, budget=simulations, batch_size=512,
             dimension=36, optimisation_task="maximization")
 
     # Create a logger to pretty-print everything and generate output data files
