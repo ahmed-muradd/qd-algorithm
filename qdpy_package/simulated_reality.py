@@ -1,3 +1,4 @@
+import math
 from qdpy import plots
 from qdpy.containers import Grid
 import sys, os, pickle, numpy as np
@@ -72,8 +73,7 @@ def simulate_reality(grid: Grid) -> None:
             quality_copy[index] = [error]
             grid.quality_array[index] = [ft]
             print(f"\r{counter*100/grid.filled_bins:.2f}%", end='')
-            counter+=1
-        
+            counter+=1        
 
     # plot the grid subplots for reality testing
     path: str = output_path + "/realityPerformance.pdf"
@@ -82,7 +82,8 @@ def simulate_reality(grid: Grid) -> None:
     
     # finding the highest error
     flat_array = quality_copy.flatten()
-    max_value = np.max(flat_array)
+    filtered_array = [x for x in flat_array if not math.isnan(x)]
+    max_value = np.max(filtered_array)
     path = output_path + "/realityError.pdf"
     plots.plotGridSubplots(quality_copy[..., 0], path, plt.get_cmap("inferno"), 
                            grid.features_domain, fitnessBounds=(0., max_value), nbTicks=None)
