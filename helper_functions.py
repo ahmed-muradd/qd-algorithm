@@ -74,16 +74,21 @@ def sine_controller(time, amp, freq, phase, offset):
     return amp*1.507 * np.sin(freq*time + phase) + offset
 
 # simulation setup
-def tanh_controller(time, amp, phase, offset):
-    amp = amp * math.pi/2
+def tanh_controller(time, amp, phase, offset, half_rotation=0):
     # offset 0.5 is no offset
-    # offset of 0 is -pi offset
-    # offset of 1 is pi offset
-    offset = 2*(offset-0.5) * math.pi/2
+    # offset of 0 is -pi/2 or -pi/4 offset
+    # offset of 1 is pi/2 or pi/4 offset
+    if half_rotation:
+        amp = amp * math.pi/4
+        offset = 2*(offset-0.5) * math.pi/4
+    else:
+        amp = amp * math.pi/2
+        offset = 2*(offset-0.5) * math.pi/2
 
     return amp * np.tanh(4*math.sin(2*math.pi*(time + phase))) + offset
 
 def tan_control_mjx(data, cont):
+    # TODO: Add support for half rotation
     new_data = data
     amp = cont[:, 0]*np.pi/2
     offset = 2*(cont[:, 2]-0.5) * np.pi/2
@@ -94,6 +99,6 @@ def tan_control_mjx(data, cont):
 
 
 if __name__ == "__main__":
-    for i in range(120):
-        # print(sine_controller(i/60, 1, 10, 0, 0))
-        print(tanh_controller(i/60, 0.01, 0, 0.5))
+    # for i in range(120):
+        # print(sine_controller(i/60, 1, 10, 0, 0, False))
+        print(tanh_controller(i/60, 0.01, 0, 0.5, False))

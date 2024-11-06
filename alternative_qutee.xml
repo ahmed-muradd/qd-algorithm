@@ -1,6 +1,6 @@
 <mujoco model="qutee">
     <compiler angle="radian" coordinate="local"/>
-    <option gravity="0 0 -7.81"/>
+    <option gravity="0 0 -8.81"/>
 <!--    <option integrator="RK4" timestep="0.01"/>-->
     <visual>
         <global offwidth="800" offheight="600"/>

@@ -55,10 +55,14 @@ def generate_video(parameters, duration=10, framerate=60, output_path=output_pat
     # run each frame on simulation
     while data.time < duration:
         controllers = []
-        
-        # applies sine wave to each parameter
-        for row in parameters:
-            controllers.append(tanh_controller(data.time, row[0], row[1], row[2]))
+
+        # applies tanh wave to each parameter
+        for i, row in enumerate(parameters):
+            if i % 3 == 0:  # Every third controller starting from 0
+                controllers.append(tanh_controller(data.time, row[0], row[1], row[2]))
+            else:
+                controllers.append(tanh_controller(data.time, row[0], row[1], row[2], half_rotation=True))
+
 
         data.ctrl = controllers
         mujoco.mj_step(model, data)
@@ -76,20 +80,20 @@ def generate_video(parameters, duration=10, framerate=60, output_path=output_pat
     print("Video generated!")
 
 
-# if ran as main, generate video
+# if ran as main, generate video. Used for testing
 if __name__ == '__main__':
-    # paste the parameters from the pickle file into the save_video function
     # list of 36 zeroes
     parameters = [0.0]*36
-    # every 3.th element is the offset and should be 0.5
+
+    # every 3.th element starting from 2 is the offset and should be 0.5
     for i in range(2, 36, 3):
         parameters[i] = 0.5
 
+    # # every 3.th element starting from 0 is the amplitude
+    for i in range(0, 36, 3):
+        parameters[i] = 1
 
-    parameters[0] = 1
 
-    parameters[18] = 1
-    parameters[19] = 0.5
 
 
     # Check if the logs folder exists, if not, create it

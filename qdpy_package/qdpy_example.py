@@ -100,9 +100,13 @@ def eval_fn(parameters):
     while data.time < duration:
         controllers = []
         
-        # applies sine wave to each parameter
-        for row in parameters:
-            controllers.append(tanh_controller(data.time, row[0], row[1], row[2]))
+        # applies tanh wave to each parameter
+        for i, row in enumerate(parameters):
+            if i % 3 == 0:  # Every third controller starting from 0
+                controllers.append(tanh_controller(data.time, row[0], row[1], row[2]))
+            else:
+                controllers.append(tanh_controller(data.time, row[0], row[1], row[2], half_rotation=True))
+
 
         data.ctrl = controllers
         mujoco.mj_step(model, data)

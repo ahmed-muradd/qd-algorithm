@@ -7,7 +7,7 @@ import mujoco
 import mujoco.viewer
 
 
-output_path = "output"
+output_path = "output4"
 
 # import helper functions
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -27,9 +27,13 @@ def fitness(controller: list, duration: int = 10) -> float:
     while data.time < duration:
         controllers = []
         
-        # applies sine wave to each parameter
-        for row in controller:
-            controllers.append(tanh_controller(data.time, row[0], row[1], row[2]))
+        # applies tanh wave to each parameter
+        for i, row in enumerate(controller):
+            if i % 3 == 0:  # Every third controller starting from 0
+                controllers.append(tanh_controller(data.time, row[0], row[1], row[2]))
+            else:
+                controllers.append(tanh_controller(data.time, row[0], row[1], row[2], half_rotation=True))
+
 
         data.ctrl = controllers
         mujoco.mj_step(model, data)
@@ -76,7 +80,7 @@ def simulate_reality(grid: Grid) -> None:
             counter+=1        
 
     # plot the grid subplots for reality testing
-    path: str = output_path + "/realityPerformance.pdf"
+    path: str = output_path + "/realityPerformance4.pdf"
     plots.plotGridSubplots(grid.quality_array[... ,0], path, plt.get_cmap("inferno"), 
                            grid.features_domain, fitnessBounds=(0., best[0]), nbTicks=None)
     
@@ -84,7 +88,7 @@ def simulate_reality(grid: Grid) -> None:
     flat_array = quality_copy.flatten()
     filtered_array = [x for x in flat_array if not math.isnan(x)]
     max_value = np.max(filtered_array)
-    path = output_path + "/realityError.pdf"
+    path = output_path + "/realityError4.pdf"
     plots.plotGridSubplots(quality_copy[..., 0], path, plt.get_cmap("inferno"), 
                            grid.features_domain, fitnessBounds=(0., max_value), nbTicks=None)
 

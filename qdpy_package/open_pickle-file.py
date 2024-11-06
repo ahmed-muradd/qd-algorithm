@@ -6,7 +6,7 @@ from generate_video import generate_video
 
 output_path = "output4"
 # generate vide of the nth best individual, ordered by fitness
-use_nth_best = True
+use_nth_best = False
 nth_best = 0
 
 if not os.path.exists(output_path + "/final.p"):
@@ -50,9 +50,10 @@ if use_nth_best:
 else:
     # can be used for testing
     populated_positions = [s for s in grid.fitness if len(grid.fitness[s]) != 0]
-    print("Populated grid positions:")
+    print("Populated grid positions and their fitness:")
     for position in populated_positions:
-        print(position)
+        fitness = int(grid.fitness[position][0].values[0]) if len(grid.fitness[position]) != 0 else 0
+        print(f"Position: {position}, Fitness: {fitness}")
     
     # put in the grid position you want to generate a video of,
     # see terminal output too select from populated_positions
