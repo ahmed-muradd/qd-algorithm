@@ -26,14 +26,13 @@ example from : https://gitlab.com/leo.cazenille/qdpy/-/blob/master/examples/cust
 
 from qdpy import algorithms, containers, plots
 from qdpy.base import ParallelismManager
-import sys, os, mpmath, numpy as np
+import sys, os, numpy as np
 import mujoco, mujoco.viewer
 
 # import helper functions
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from helper_functions import quat_to_rpy, tanh_controller
 from generate_video import generate_video
-from mjx_qdpy_example import eval_batch_fn
 
 
 model = mujoco.MjModel.from_xml_path('qutee.xml')
@@ -41,9 +40,13 @@ data = mujoco.MjData(model)
 output_path = "output"
 duration = 10   # (seconds)
 
-# Check if the logs folder exists, if not, create it
-if not os.path.exists(output_path):
-    os.makedirs(output_path)
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# Set the path to the output_path folder in the project root
+output_path = os.path.join(project_root, output_path)
+ 
+# Create the directory if it doesn't exist
+os.makedirs(output_path, exist_ok=True)
 
 
 def is_leg_in_contact(data, leg_geom_name="leg_0_3_geom"):
