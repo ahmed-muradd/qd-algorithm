@@ -7,7 +7,7 @@ import mujoco
 import mujoco.viewer
 
 
-output_path = "output4"
+output_path = "output6"
 
 # import helper functions
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -69,10 +69,7 @@ def simulate_reality(grid: Grid) -> None:
         if len(controller):
             controller = controller[0]
             ft = fitness(controller)
-            error = grid.quality_array[index][0]-ft
-            
-            if error < 0:
-                error = 0.0
+            error = abs(grid.quality_array[index][0]-ft)
 
             quality_copy[index] = [error]
             grid.quality_array[index] = [ft]
@@ -80,7 +77,7 @@ def simulate_reality(grid: Grid) -> None:
             counter+=1        
 
     # plot the grid subplots for reality testing
-    path: str = output_path + "/realityPerformance4.pdf"
+    path: str = output_path + "/realityPerformance.pdf"
     plots.plotGridSubplots(grid.quality_array[... ,0], path, plt.get_cmap("inferno"), 
                            grid.features_domain, fitnessBounds=(0., best[0]), nbTicks=None)
     
@@ -88,7 +85,7 @@ def simulate_reality(grid: Grid) -> None:
     flat_array = quality_copy.flatten()
     filtered_array = [x for x in flat_array if not math.isnan(x)]
     max_value = np.max(filtered_array)
-    path = output_path + "/realityError4.pdf"
+    path = output_path + "/realityError.pdf"
     plots.plotGridSubplots(quality_copy[..., 0], path, plt.get_cmap("inferno"), 
                            grid.features_domain, fitnessBounds=(0., max_value), nbTicks=None)
 
