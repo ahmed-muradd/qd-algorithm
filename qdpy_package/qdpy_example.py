@@ -92,8 +92,8 @@ def eval_fn(parameters):
     rpy_values = []
 
     # legs to check for contact
-    # legs = ["leg_0_3_geom", "leg_2_3_geom", "leg_3_3_geom", "leg_5_3_geom"]
-    # contact_times = {leg: 0.0 for leg in legs}
+    legs = ["leg_0_3_geom", "leg_2_3_geom", "leg_3_3_geom", "leg_5_3_geom"]
+    contact_times = {leg: 0.0 for leg in legs}
 
     while data.time < duration:
         controllers = []
@@ -109,21 +109,21 @@ def eval_fn(parameters):
         data.ctrl = controllers
         mujoco.mj_step(model, data)
 
-        # # check if each leg is in contact with the ground
-        # for leg in legs:
-        #     if is_leg_in_contact(data, leg):
-        #         contact_times[leg] += 1 / 500
+        # check if each leg is in contact with the ground
+        for leg in legs:
+            if is_leg_in_contact(data, leg):
+                contact_times[leg] += 1 / 500
 
         # Get the roll, pitch, and yaw SE with mpmath precision
-        quaternion = data.xquat[body_index]
-        this_rpy = quat_to_rpy(quaternion, prev_rpy)  # Pass prev_rpy for continuity
-        rpy_values.append(this_rpy - prev_rpy)
-        prev_rpy = this_rpy
+        # quaternion = data.xquat[body_index]
+        # this_rpy = quat_to_rpy(quaternion, prev_rpy)  # Pass prev_rpy for continuity
+        # rpy_values.append(this_rpy - prev_rpy)
+        # prev_rpy = this_rpy
 
 
     # Get SE of roll, pitch, yaw using mpmath operations
-    rpy_values = [mpmath.fsum([mpmath.power(val[i], 2) for val in rpy_values]) for i in range(3)]
-    roll_error, pitch_error, yaw_error = [float(err)*10 for err in rpy_values]
+    # rpy_values = [mpmath.fsum([mpmath.power(val[i], 2) for val in rpy_values]) for i in range(3)]
+    # roll_error, pitch_error, yaw_error = [float(err)*10 for err in rpy_values]
 
     # robot's z rotation
     body_z_axis_world = rotation_matrix[:, 2]
@@ -143,9 +143,14 @@ def eval_fn(parameters):
 
     # Compute the features
     # features = (x,y,z)
-    features = (roll_error, pitch_error, yaw_error)
-    # contact_times = {k: v / 10 for k, v in contact_times.items()}
-    # features = tuple(contact_times.values())
+    # features = (roll_error, pitch_error, yaw_error)
+
+    # The contact times are originally in range from 0 to 10.
+    # the values are normalized by dividing by 5. This makes our range go from 0 to 2.
+    # the qd algorithm will only use values from 0 to 1, so this way we discard the values above 1.
+    # Values above 1 is the leg being in contact with the ground for over 50% of the time.
+    contact_times = {k: v / 5 for k, v in contact_times.items()}
+    features = tuple(contact_times.values())
 
     return (fitness,), features
 
@@ -153,8 +158,8 @@ def eval_fn(parameters):
 
 if __name__ == "__main__":
     # Create container and algorithm. Here we use MAP-Elites, by illuminating a Grid container by evolution.
-    grid = containers.Grid(shape=(10,10,10), max_items_per_bin=1, fitness_domain=((0., 80.),), features_domain=((0., 1.), (0., 1.), (0., 1.)))
-    algo = algorithms.RandomSearchMutPolyBounded(grid, budget=5000000, batch_size=512,
+    grid = containers.Grid(shape=(10,10,10,10), max_items_per_bin=1, fitness_domain=((0., 80.),), features_domain=((0., 1.), (0., 1.), (0., 1.), (0., 1.)))
+    algo = algorithms.RandomSearchMutPolyBounded(grid, budget=2500000, batch_size=512,
             dimension=36, optimisation_task="maximization")
 
     # Create a logger to pretty-print everything and generate output data files
