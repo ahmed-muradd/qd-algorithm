@@ -7,7 +7,7 @@ import mujoco
 import mujoco.viewer
 
 
-output_path = "output6"
+output_path = "output"
 
 # import helper functions
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -63,6 +63,7 @@ def simulate_reality(grid: Grid) -> None:
     best = grid.best_fitness
     # set fitness for each controller in grid based on new simulated reality
     quality_copy = np.copy(grid.quality_array)
+    percent_copy = np.copy(grid.quality_array)
     
     counter = 1
     for index, controller in controllers.items():
@@ -70,8 +71,14 @@ def simulate_reality(grid: Grid) -> None:
             controller = controller[0]
             ft = fitness(controller)
             error = abs(grid.quality_array[index][0]-ft)
+            
+            if grid.quality_array[index][0] == 0 or ft > grid.quality_array[index][0]:
+                error_percent = 0.0
+            else:
+                error_percent = (1 - ft/grid.quality_array[index][0])*100
 
             quality_copy[index] = [error]
+            percent_copy[index] = [error_percent]
             grid.quality_array[index] = [ft]
             print(f"\r{counter*100/grid.filled_bins:.2f}%", end='')
             counter+=1        
@@ -88,6 +95,11 @@ def simulate_reality(grid: Grid) -> None:
     path = output_path + "/realityError.pdf"
     plots.plotGridSubplots(quality_copy[..., 0], path, plt.get_cmap("inferno"), 
                            grid.features_domain, fitnessBounds=(0., max_value), nbTicks=None)
+    
+    path: str = output_path + "/realityErrorPercentage.pdf"
+    plots.plotGridSubplots(percent_copy[... ,0], path, plt.get_cmap("inferno"), 
+                           grid.features_domain, fitnessBounds=(0., 100.), nbTicks=None)
+
 
 if __name__=="__main__":
     print("Evaluating grid...")
