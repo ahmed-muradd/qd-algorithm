@@ -4,9 +4,9 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from generate_video import generate_video
 
 
-output_path = "output4"
+output_path = "output7"
 # generate vide of the nth best individual, ordered by fitness
-use_nth_best = False
+use_nth_best = True
 nth_best = 0
 
 if not os.path.exists(output_path + "/final.p"):
@@ -26,7 +26,7 @@ grid = data['container']
 print("\n\nthis run had a budget of ", data["budget"], " evalutions")
 print("the best individual has a fitness: ", grid.best_fitness[0], ", features: ", grid.best_features, ", position: ", grid.best_index)
 print("The batch size was ", data["batch_size"], "\n")
-
+print("The QD score is: ", grid.qd_score())
 
 
 
